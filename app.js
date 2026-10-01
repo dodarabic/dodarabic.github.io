@@ -274,7 +274,9 @@
   const DAILY = [["grammar", "✏️", "Grammatika"], ["vocab", "📚", "Lug'at"], ["listening", "🎧", "Tinglash"], ["reading", "📖", "O'qish"]];
   const PARTS = [...DAILY, ["writing", "✍️", "Yozish"]];
   const partLabel = p => PARTS.find(x => x[0] === p).slice(1).join(" ");
-  const hasParts = n => !!(lesson(n) || {}).days;
+  // Kunlik tizim vaqtincha o'chiq (ustoz qarori, 2026-10-01: guruhlar yig'ilganda yoqiladi). O'chiq paytda A1 oddiy dars bo'lib ishlaydi.
+  const DAILY_ON = false;
+  const hasParts = n => DAILY_ON && !!(lesson(n) || {}).days;
   // Kun ma'lumoti: unitning so'zlari va grammatikasi kunlarga teng bo'linadi, matnlar kunning o'zidan
   const share = (arr, k, of) => { if (!arr) return arr; const n = Math.ceil(arr.length / of); return arr.slice(k * n, (k + 1) * n); };
   const dayData = (n, k) => { const u = lesson(n), of = u.days.length; return { ...u, ...u.days[k], allWords: u.words, words: share(u.words, k, of), fills: share(u.fills, k, of) }; };
@@ -1239,6 +1241,13 @@
   let todaySel = null;
   function renderToday() {
     const box = $("#today-box"); if (!box || !ME) return;
+    if (!DAILY_ON) {
+      box.innerHTML = `<div class="card t-soon"><div class="ar">قَرِيبًا</div><b>Tez orada</b>
+        <p class="muted">Har kunlik topshiriqlar: ✏️ grammatika, 📚 lug'at, 🎧 tinglash, 📖 o'qish va ✍️ yozish. Hozircha darslarni «Darslar» bo'limida o'ting.</p>
+        <button class="btn btn-brand btn-block" id="t-lessons">📚 Darslarga o'tish</button></div>`;
+      $("#t-lessons").onclick = () => showTab("lessons");
+      return;
+    }
     const td = today(), sel = todaySel || td;
     const mon = addDays(td, -((dow(td) + 6) % 7));
     const week = Array.from({ length: 7 }, (_, i) => addDays(mon, i));
