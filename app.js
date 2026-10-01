@@ -425,7 +425,31 @@
     render();
   }
 
+  // 🎧 Tinglash qismi: avval suhbat to'liq eshittiriladi, keyin savollar
+  function showIntro() {
+    const q = run.qs[0];
+    $("#quiz-in").innerHTML = `
+      <div class="quiz-top"><button class="x" data-quit aria-label="Chiqish">✕</button><div class="progress"><i style="width:0"></i></div></div>
+      <div class="q-meta">${esc(run.title)}</div>
+      <div class="q-card intro"><div class="q-ins"><div class="ar">اِسْتَمِعْ إِلَى الْحِوَارِ</div><small>Avval suhbatni diqqat bilan tinglang, keyin savollar beriladi</small></div>
+        <button class="listen big-listen" id="in-play" aria-label="Tinglash">▶</button>
+        <div class="muted" id="in-st">${q.dialog.length} ta gap</div></div>
+      <button class="btn btn-brand btn-block" id="in-go" disabled>Savollarga o'tish →</button>`;
+    $("[data-quit]").onclick = closeRun;
+    const go = () => playSeq(q.dialog, i => {
+      if (!$("#in-st")) return;
+      $("#in-st").textContent = i < 0 ? "✅ Tinglab bo'ldingiz. Kerak bo'lsa yana tinglang" : `🔊 ${i + 1}/${q.dialog.length}-gap…`;
+      $("#in-play").textContent = i < 0 ? "↻" : "🔊";
+      if (i < 0) $("#in-go").disabled = false;
+    });
+    $("#in-play").onclick = go;
+    $("#in-go").onclick = () => { run.intro = false; playSeq.id++; if (player) player.pause(); showQ(); };
+    setTimeout(() => { const b = $("#in-go"); if (b) b.disabled = false; }, 20000);   // ovoz chiqmasa ham qotib qolmasin
+    go();
+  }
+
   function showQ() {
+    if (run.intro) return showIntro();
     const q = run.qs[run.i];
     const prev = run.qs[run.i - 1];
     const banner = run.kind === "exam" && (!prev || prev.skill !== q.skill)
@@ -472,7 +496,7 @@
         btn.textContent = i < 0 ? "▶" : "🔊";
       });
       btn.onclick = go;
-      if (!prev || !prev.dialog) go();   // birinchi savolda o'zi boshlanadi
+      if ((!prev || !prev.dialog) && !run.hadIntro) go();   // tinglash ekrani bo'lmagan bo'lsa, birinchi savolda o'zi boshlanadi
     }
     if (q.skill === "listening") play(q.audio);
     run.t0 = Date.now();
@@ -1208,6 +1232,7 @@
   function startDaily(n, k, p, date) {
     const live = !!date && date === today();
     startRun("daily", PART_BUILD[p](dayData(n, k)), { lesson: n, day: k, part: p, date: live ? date : null, noXp: !live,
+      intro: p === "listening", hadIntro: p === "listening",
       title: `${unitName(n)} · ${k + 1}-kun · ${partLabel(p)}${live ? "" : " (mashq)"}` });
   }
 
