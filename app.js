@@ -437,6 +437,7 @@
     listen: { title: "Tinglash", timed: false },
     review: { title: "Xatolarim", timed: false },
     daily: { title: "Kunlik topshiriq", timed: false },
+    cards: { title: "🃏 Kartalar mashqi", timed: false },
     exam: { title: "CEFR sinov imtihoni", timed: false },
     duel: { title: "⚔️ Duel", timed: true },
   };
@@ -656,6 +657,7 @@
     if (!run || run.locked === run.i) return;
     run.locked = run.i;
     sfx(ok ? "ok" : "bad");
+    if (ok) { if (q.type === "match") q.pairs.forEach(p => cardHit(p.ar)); else cardHit(q.topic); }
     clearInterval(run.timer);
     const q = run.qs[run.i];
     const secs = Math.min(TIMER, (Date.now() - run.t0) / 1000);
@@ -709,7 +711,7 @@
       if (S.lastMission !== today()) {
         S.streak = S.lastMission === yesterday() ? S.streak + 1 : 1;
         S.lastMission = today(); bonus += XP_MISSION;
-        pills.push(`<span class="pill gold">🔥 Olov yondi: ${S.streak} kun</span>`, `<span class="pill gold">🎁 +${XP_MISSION} bonus</span>`);
+        pills.push(`<span class="pill gold">🔥 Olov yondi: ${S.streak} kun</span>`, `<span class="pill gold">🎁 +${XP_MISSION} bonus</span>`, chestPill(giveChest("silver")));
       } else pills.push(`<span class="pill soft">Bugungi missiya avval bajarilgan, bu mashq</span>`);
       flash = r.fast >= 5;
       actions = `<button class="btn btn-brand btn-block" data-again>➕ Yana 5 ta savol</button>` + actions;
@@ -747,6 +749,7 @@
       const ln = r.lesson, wasPassed = passed(ln);
       S.lessons[ln] = Math.max(S.lessons[ln] || 0, pct);
       if (pct >= PASS) {
+        pills.push(chestPill(giveChest("wood")));
         const nx = nextOf(ln);
         if (!nx) headline = "🎉 Barcha darslar tugadi! 👑";
         else if (wasPassed) headline = "Dars yana bir bor mustahkamlandi 💪";
@@ -757,6 +760,9 @@
         headline = `Keyingi dars uchun ${PASS}% kerak`;
         actions = `<button class="btn btn-brand btn-block" data-lesson="${ln}">🔁 Qayta urinish</button>` + actions;
       }
+    } else if (r.kind === "cards") {
+      headline = pct >= PASS ? "Kartalaringiz kuchaydi! 🃏💪" : "Yana mashq qiling, kartalar kuchayadi 💪";
+      actions = `<button class="btn btn-brand btn-block" data-again>🃏 Yana 10 ta</button>` + actions;
     } else if (r.kind === "listen") {
       headline = pct >= 70 ? "Qulog'ingiz arabchaga o'rganyapti 🎧" : "Yana tinglang, har safar osonlashadi 💪";
       actions = `<button class="btn btn-brand btn-block" data-again>🎧 Yana tinglash</button>` + actions;
@@ -800,7 +806,7 @@
 
   function bindResultButtons(kind) {
     $("[data-home]").onclick = closeRun;
-    const again = $("[data-again]"); if (again) again.onclick = () => ({ mission: startMission, listen: startListen, review: startReview })[kind]();
+    const again = $("[data-again]"); if (again) again.onclick = () => ({ mission: startMission, listen: startListen, review: startReview, cards: startCards })[kind]();
     const nextL = $("[data-lesson]"); if (nextL) nextL.onclick = () => startLesson(+nextL.dataset.lesson);
     const dp = $("[data-dpart]"); if (dp) dp.onclick = () => startDaily(+dp.dataset.n, +dp.dataset.k, dp.dataset.dpart, dp.dataset.date || null);
     const gt = $("[data-gotoday]"); if (gt) gt.onclick = () => { closeRun(); showTab("today"); };
@@ -881,7 +887,7 @@
   }
 
   // ---------- Duel ----------
-  let INBOX = { incoming: [], waiting: [], results: [] };
+  let INBOX = { incoming: [], waiting: [], results: [] }, inboxChest = null;
   async function loadInbox() {
     try {
       INBOX = await rpc("duel_inbox", { p_token: TOKEN });
@@ -895,6 +901,9 @@
         S.c.duel_win = (S.c.duel_win || 0) + newWins.length;
         S.c.duel_seen = [...seen, ...newWins].slice(-50);
         checkBadges();
+        // 🧪 Har bir yangi g'alaba uchun oltin sandiq (10% — sehrli)
+        newWins.forEach(() => { const t = giveChest(Math.random() < 0.1 ? "magic" : "gold"); if (t) inboxChest = t; });
+        if (inboxChest) { saveResult(0, 0, "chest", []); renderChests(); if (!run) { toast(`🎁 Duel g'alabasi uchun ${CHESTS[inboxChest][1].toLowerCase()} sandiq!`); inboxChest = null; } }
       }
     } catch { /* internet bo'lmasa, keyinroq */ }
   }
@@ -927,6 +936,124 @@
         <span class="nm"><b>${esc(r.name)}${r.id === b.me ? " (siz)" : ""}</b><small>${ARENAS[arenaIdx(r.tr)][1]} ${ARENAS[arenaIdx(r.tr)][2]}</small></span><span class="val">🏆 ${r.tr}</span></div>`).join("")
         : `<p class="muted">Bu mavsumda hali hech kim kubok yutmadi. Birinchi bo'ling! ⚔️</p>`}</div>
       <button class="btn btn-soft btn-block" data-close>Yopish</button>`);
+  }
+
+  // ---------- 🧪 SINOV: 🎁 sandiqlar ----------
+  // Dars o'tsa — yog'och, kunlik missiya — kumush, duelda g'alaba — oltin (10% sehrli). 4 ta joy, bir vaqtda bittasi ochiladi.
+  const CHESTS = {
+    wood: ["🎁", "Yog'och", 30 * 60e3, [10, 20], 0.15], silver: ["🎁", "Kumush", 3 * 3600e3, [25, 40], 0.35],
+    gold: ["🎁", "Oltin", 8 * 3600e3, [50, 80], 0.7], magic: ["🔮", "Sehrli", 12 * 3600e3, [100, 100], 1],
+  };
+  const CHEST_SLOTS = 4;
+  const fmtLeft = ms => { const s = Math.ceil(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return h ? `${h} soat ${m} daq` : m ? `${m} daq ${s % 60} s` : `${s} s`; };
+  function giveChest(type) {
+    if (!BETA()) return null;
+    S.chests = S.chests || [];
+    if (S.chests.length >= CHEST_SLOTS) { setTimeout(() => toast("🎁 Sandiq joylari to'la! Avval birini oching"), 1200); return null; }
+    S.chests.push({ t: type, at: null });
+    return type;
+  }
+  const chestPill = t => t ? `<span class="pill gold">🎁 ${CHESTS[t][1]} sandiq!</span>` : "";
+  function renderChests() {
+    const box = $("#chests");
+    box.hidden = !BETA();
+    if (!BETA()) return;
+    const list = S.chests || [], now = Date.now();
+    box.innerHTML = `<div class="chest-head"><b>🎁 Sandiqlar <small>🧪 sinov</small></b><small>dars · missiya · duel g'alabasi</small></div>
+      <div class="chest-row">${Array.from({ length: CHEST_SLOTS }, (_, i) => {
+        const c = list[i]; if (!c) return `<div class="chest empty"><span class="ci">＋</span><small>bo'sh joy</small></div>`;
+        const [ic, name, dur] = CHESTS[c.t], left = c.at ? c.at + dur - now : null;
+        const st = left == null ? `ochish: ${fmtLeft(dur)}` : left > 0 ? `⏳ <span data-left="${i}">${fmtLeft(left)}</span>` : "✨ Tayyor!";
+        return `<button class="chest ${c.t} ${left != null && left <= 0 ? "ready" : ""}" data-chest="${i}"><span class="ci">${ic}</span><b>${name}</b><small>${st}</small></button>`;
+      }).join("")}</div>`;
+    $$("[data-chest]").forEach(b => (b.onclick = () => chestTap(+b.dataset.chest)));
+  }
+  setInterval(() => {   // ochilayotgan sandiq soati
+    if (!BETA() || $("#screen-home").hidden) return;
+    const els = $$("[data-left]"); if (!els.length) return;
+    let ready = false;
+    els.forEach(el => { const c = (S.chests || [])[+el.dataset.left]; if (!c) return; const left = c.at + CHESTS[c.t][2] - Date.now(); if (left <= 0) ready = true; else el.textContent = fmtLeft(left); });
+    if (ready) renderChests();
+  }, 1000);
+  function chestTap(i) {
+    const c = S.chests[i], [ic, name, dur, xp, p] = CHESTS[c.t];
+    if (c.at && Date.now() >= c.at + dur) return openChest(i);
+    const busy = S.chests.some((x, j) => j !== i && x.at && Date.now() < x.at + CHESTS[x.t][2]);
+    sheet(`<div class="chest-open"><div class="big">${ic}</div><h3>${name} sandiq</h3>
+      <p>Ichida: <b style="color:var(--ink)">${xp[0] === xp[1] ? xp[0] : `${xp[0]}–${xp[1]}`} XP</b>${p >= 1 ? " va <b style='color:var(--ink)'>noyob buyum</b>" : ` va ${Math.round(p * 100)}% ehtimol bilan noyob avatar buyumi`}.</p></div>
+      ${c.at ? `<p class="muted" style="text-align:center">⏳ Ochilishiga: ${fmtLeft(c.at + dur - Date.now())}</p>`
+        : busy ? `<p class="muted" style="text-align:center">Bir vaqtda bitta sandiq ochiladi. Avvalgisi tugashini kuting.</p>`
+        : `<button class="btn btn-brand btn-block" id="ch-start">⏳ Ochishni boshlash (${fmtLeft(dur)})</button>`}
+      <button class="btn btn-soft btn-block" id="ch-fast">⚡ Tez ochish (faqat sinov uchun)</button>
+      <button class="btn btn-soft btn-block" data-close>Yopish</button>`);
+    const st = $("#ch-start"); if (st) st.onclick = () => { c.at = Date.now(); closeSheet(); renderChests(); saveResult(0, 0, "chest", []); };
+    $("#ch-fast").onclick = () => { closeSheet(); openChest(i); };
+  }
+  function openChest(i) {
+    const c = S.chests.splice(i, 1)[0], [ic, name, , xpR, p] = CHESTS[c.t];
+    const xp = xpR[0] + rnd(xpR[1] - xpR[0] + 1);
+    S.items = S.items || [];
+    const pool = AV ? Object.entries(AV.EXTRA).flatMap(([k, vs]) => vs.map(v => `${k}:${v}`)).filter(x => !S.items.includes(x)) : [];
+    const item = pool.length && Math.random() < p ? pick(pool) : null;
+    if (item) S.items.push(item);
+    const [ik, iv] = item ? item.split(":") : [];
+    const ITEM_NAME = { bg: "Kamalak fon", hc: "Noyob soch rangi", hj: "Noyob ro'mol rangi" };
+    const swatch = item ? (AV.GRAD[iv] ? `linear-gradient(135deg,#${AV.GRAD[iv][0]},#${AV.GRAD[iv][1]})` : `#${iv}`) : "";
+    sheet(`<div class="chest-open"><div class="big">${ic}</div><h3>${name} sandiq ochildi!</h3>
+      <div class="reward"><span style="font-size:30px">⭐</span><b>+${xp} XP</b></div>
+      ${item ? `<div class="reward"><span class="sw" style="background:${swatch}"></span><span><b>${ITEM_NAME[ik]}</b><br><small class="muted">Avatar konstruktorida ochildi 🔓</small></span></div>` : ""}</div>
+      ${item ? `<button class="btn btn-brand btn-block" id="ch-ava">🧑‍🎨 Avatarga qo'yish</button>` : ""}
+      <button class="btn btn-soft btn-block" data-close>Zo'r!</button>`);
+    sfx("win"); if (item) sfx("badge");
+    const a = $("#ch-ava"); if (a) a.onclick = () => { closeSheet(); avatarEditor(); };
+    saveResult(0, xp, "chest", []).then(() => render());
+    renderChests();
+  }
+
+  // ---------- 🧪 SINOV: 🃏 so'z kartalari ----------
+  // Har bir so'z — karta. To'g'ri topgan sari daraja oshadi (S.cards[ar] = to'g'ri javoblar soni).
+  const WORDS = new Map();
+  D.lessons.forEach(l => (l.words || []).forEach(w => { if (!WORDS.has(w.ar)) WORDS.set(w.ar, { ...w, lesson: l.number }); }));
+  const CARD_LV = [[1, "🥉", "Bronza"], [3, "🥈", "Kumush"], [6, "🥇", "Oltin"], [10, "💎", "Olmos"]];
+  const cardLv = n => CARD_LV.filter(x => (n || 0) >= x[0]).length;   // 0 — hali ochilmagan, 1..4
+  function cardHit(ar) {
+    if (!WORDS.has(ar)) return;
+    S.cards = S.cards || {};
+    const before = cardLv(S.cards[ar]);
+    S.cards[ar] = (S.cards[ar] || 0) + 1;
+    const after = cardLv(S.cards[ar]);
+    if (BETA() && after > before && after >= 2) toast(`🃏 ${ar} kartasi: ${CARD_LV[after - 1][1]} ${CARD_LV[after - 1][2]}!`);
+  }
+  const myWords = () => openLessons().flatMap(l => (l.words || []).map(w => w.ar)).filter((a, i, all) => all.indexOf(a) === i).map(a => WORDS.get(a));
+  function renderCardsBtn() {
+    const b = $("#w-cards"); b.hidden = !BETA(); if (!BETA()) return;
+    const ws = myWords(), got = ws.filter(w => cardLv((S.cards || {})[w.ar]) > 0).length, dia = ws.filter(w => cardLv((S.cards || {})[w.ar]) === 4).length;
+    b.innerHTML = `<span class="ci">🃏</span><span class="t"><b>So'z kartalari · ${got}/${ws.length}</b><small>🧪 sinov · 💎 ${dia} ta olmos karta</small></span><span style="font-size:22px">›</span>`;
+    b.onclick = cardsSheet;
+  }
+  function cardsSheet() {
+    const ws = myWords(), lv = w => cardLv((S.cards || {})[w.ar]);
+    const cnt = k => ws.filter(w => lv(w) === k).length;
+    const sorted = [...ws].sort((a, b) => lv(b) - lv(a) || ((S.cards || {})[b.ar] || 0) - ((S.cards || {})[a.ar] || 0));
+    sheet(`<h3>🃏 So'z kartalari</h3>
+      <p>Har bir so'zni to'g'ri topsangiz, karta kuchayadi: 🥉 1 · 🥈 3 · 🥇 6 · 💎 10 marta.</p>
+      <div class="card-lv"><span>💎 ${cnt(4)}</span><span>🥇 ${cnt(3)}</span><span>🥈 ${cnt(2)}</span><span>🥉 ${cnt(1)}</span><span>❔ ${cnt(0)}</span></div>
+      <button class="btn btn-brand btn-block" id="cards-go">💪 Zaif kartalarni kuchaytirish (10 savol)</button>
+      <div class="wcards">${sorted.map(w => { const k = lv(w), n = (S.cards || {})[w.ar] || 0;
+        return `<div class="wcard l${k}"><span class="ar">${esc(w.ar)}</span><small>${k ? esc(w.uz) : "hali ochilmagan"}</small><small>${k ? `${CARD_LV[k - 1][1]} ${n} marta` : "❔"}</small></div>`; }).join("")}</div>
+      <button class="btn btn-soft btn-block" data-close>Yopish</button>`);
+    $("#cards-go").onclick = () => { closeSheet(); startCards(); };
+  }
+  // Eng zaif (kam topilgan) so'zlardan savollar: ar→uz, uz→ar, tinglab topish
+  function cardQ(w) {
+    const d = lesson(w.lesson), pool = sameKind(w, d.words), t = pick(["ar2uz", "uz2ar", "l_word"]);
+    if (t === "ar2uz") return Q("ar2uz", "reading", w.ar, `<b>${w.ar}</b>\n\nBu so'z nima degani?`, options(w.uz, pool.map(x => x.uz)), { hint: `${w.ar}: ${w.uz}`, audio: w.ar });
+    if (t === "uz2ar") return Q("uz2ar", "reading", w.ar, `<b>«${cap(w.uz)}»</b> arabchada qanday bo'ladi?`, options(w.ar, pool.map(x => x.ar)));
+    return Q("l_word", "listening", w.ar, "🎧 Eshiting. Qaysi so'z aytildi?", options(w.ar, pool.map(x => x.ar)), { audio: w.ar, hint: `${w.ar}: ${w.uz}` });
+  }
+  function startCards() {
+    const ws = shuffle(myWords()).sort((a, b) => ((S.cards || {})[a.ar] || 0) - ((S.cards || {})[b.ar] || 0)).slice(0, 10);
+    startRun("cards", ws.map(cardQ));
   }
 
   function duelSheet() {
@@ -999,6 +1126,7 @@
     catch (e) { res = { status: "error", msg: errText(e) }; }
     await saveResult(0, 0, "duel", r.answers);   // javoblar statistikasi va xatolar uchun
     await loadInbox();
+    const chest = inboxChest; inboxChest = null;
     if (!run || run !== r) return;
     let head, pill = "";
     if (res.status === "done") {
@@ -1006,7 +1134,7 @@
       pill = `<span class="pill green">⭐ +${{ win: 30, draw: 15, lose: 5 }[res.outcome]} XP</span>`;
       if (BETA()) {
         const before = TROPHIES ? TROPHIES.mine : null, d = TROPHY[res.outcome];
-        pill += `<span class="pill gold">🏆 ${d > 0 ? "+" : ""}${d}</span>`;
+        pill += `<span class="pill gold">🏆 ${d > 0 ? "+" : ""}${d}</span>` + chestPill(chest);
         const t = await loadTrophies();
         if (t && before != null && arenaIdx(t.mine) > arenaIdx(before)) {
           const a = ARENAS[arenaIdx(t.mine)];
@@ -1184,7 +1312,7 @@
     const mc = Object.keys(S.mistakes).length;
     $("#mist-count").hidden = !mc; $("#mist-count").textContent = mc;
 
-    renderWotd(); renderLessons(); renderWords(); renderProfile(); renderToday();
+    renderWotd(); renderLessons(); renderWords(); renderProfile(); renderToday(); renderChests(); renderCardsBtn();
   }
   const showTab = name => $(`.tab[data-tab="${name}"]`).click();
 
@@ -1477,12 +1605,19 @@
       $("#av-prev").innerHTML = avaSvg(draft);
       if (!tabs().some(([k]) => k === tab)) tab = "h";
       $("#av-tabs").innerHTML = tabs().map(([k, n]) => `<button data-avt="${k}" aria-pressed="${k === tab}">${n}</button>`).join("");
-      $("#av-grid").innerHTML = AV.OPTS[tab].map(v => AV_COLORS.has(tab)
-        ? `<button class="av-opt sw" data-v="${v}" aria-pressed="${draft[tab] === v}"><span style="background:#${v}"></span></button>`
+      // 🧪 Noyob buyumlar (sandiqdan): sinov rejimida ko'rinadi, ochilmaganlari qulflangan
+      const extra = BETA() ? (AV.EXTRA[tab] || []) : [], owned = v => (S.items || []).includes(`${tab}:${v}`);
+      const lockedV = v => extra.includes(v) && !owned(v);
+      const swatch = v => AV.GRAD[v] ? `linear-gradient(135deg,#${AV.GRAD[v][0]},#${AV.GRAD[v][1]})` : `#${v}`;
+      $("#av-grid").innerHTML = [...AV.OPTS[tab], ...extra].map(v => AV_COLORS.has(tab)
+        ? `<button class="av-opt sw ${lockedV(v) ? "locked" : ""}" data-v="${v}" aria-pressed="${draft[tab] === v}"><span style="background:${swatch(v)}"></span></button>`
         : `<button class="av-opt" data-v="${v}" aria-pressed="${draft[tab] === v}">${!v ? "🚫" : avaSvg({ ...draft, [tab]: v })}</button>`).join("");
       $("#av-name").textContent = AV_TABS.find(([k]) => k === tab)[1];
       $$("[data-avt]").forEach(b => (b.onclick = () => { tab = b.dataset.avt; draw(); }));
-      $$("#av-grid .av-opt").forEach(b => (b.onclick = () => { draft = { ...draft, [tab]: b.dataset.v }; draw(); }));
+      $$("#av-grid .av-opt").forEach(b => (b.onclick = () => {
+        if (b.classList.contains("locked")) return toast("🎁 Bu noyob buyum sandiqdan chiqadi");
+        draft = { ...draft, [tab]: b.dataset.v }; draw();
+      }));
     };
     sheet(`<h3>🧑‍🎨 Mening avatarim</h3>
       <div class="av-prev" id="av-prev"></div>

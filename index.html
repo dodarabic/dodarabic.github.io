@@ -401,6 +401,33 @@
   .ar-step { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 12px; background: var(--surface-2); opacity: .55; }
   .ar-step span { font-size: 24px; } .ar-step b { flex: 1; } .ar-step small { color: var(--muted); font-weight: 700; }
   .ar-step.on { opacity: 1; } .ar-step.here { outline: 2px solid var(--gold); }
+  /* 🧪 Sandiqlar */
+  #chests { margin-top: 12px; }
+  .chest-head { display: flex; justify-content: space-between; align-items: baseline; margin: 0 2px 8px; } .chest-head b { font-family: var(--f-display); } .chest-head small { color: var(--muted); }
+  .chest-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .chest { border-radius: 16px; padding: 10px 4px 8px; display: grid; justify-items: center; gap: 2px; text-align: center; min-height: 96px; align-content: center; box-shadow: var(--shadow); color: #fff; }
+  .chest .ci { font-size: 32px; line-height: 1.1; } .chest b { font-size: 11.5px; } .chest small { font-size: 11px; opacity: .9; font-variant-numeric: tabular-nums; }
+  .chest.empty { background: var(--surface); border: 2px dashed var(--line); color: var(--muted); box-shadow: none; }
+  .chest.wood { background: linear-gradient(160deg, #9a6b3f, #6b4423); } .chest.silver { background: linear-gradient(160deg, #a9b4c2, #6e7b8c); }
+  .chest.gold { background: linear-gradient(160deg, #f2c14e, #b8860b); } .chest.magic { background: linear-gradient(160deg, #b06ab3, #4568dc); }
+  .chest.ready { animation: wiggle 1.2s ease-in-out infinite; outline: 3px solid #F2C14E; }
+  @keyframes wiggle { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-4deg); } 75% { transform: rotate(4deg); } }
+  .chest-open { text-align: center; display: grid; gap: 10px; justify-items: center; }
+  .chest-open .big { font-size: 80px; animation: wiggle .5s ease-in-out 3; }
+  .reward { display: flex; align-items: center; gap: 12px; background: var(--surface-2); border-radius: 14px; padding: 10px 14px; width: 100%; }
+  .reward .sw { width: 46px; height: 46px; border-radius: 50%; flex: none; }
+  .av-opt.locked { position: relative; } .av-opt.locked::after { content: "🔒"; position: absolute; font-size: 16px; right: 4px; bottom: 2px; }
+  .av-opt.locked span { opacity: .45; }
+  /* 🧪 So'z kartalari */
+  .cards-btn { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: linear-gradient(150deg, #2B4A6B, #1C2E44); color: #fff; border-radius: var(--r-lg); padding: 12px 14px; margin-bottom: 12px; box-shadow: var(--shadow); }
+  .cards-btn .ci { font-size: 32px; } .cards-btn .t { flex: 1; display: grid; gap: 2px; } .cards-btn small { opacity: .85; }
+  .card-lv { display: flex; gap: 6px; flex-wrap: wrap; }
+  .card-lv span { background: var(--surface-2); border-radius: 999px; padding: 4px 10px; font-size: 13px; font-weight: 700; }
+  .wcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; max-height: 52vh; overflow-y: auto; padding: 2px; }
+  .wcard { border-radius: 14px; padding: 8px 6px; text-align: center; display: grid; gap: 2px; border: 2px solid var(--line); background: var(--surface-2); }
+  .wcard .ar { font-size: 19px; font-weight: 700; line-height: 1.6; } .wcard small { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .wcard.l0 { opacity: .45; } .wcard.l1 { border-color: #b07c4f; } .wcard.l2 { border-color: #a9b4c2; } .wcard.l3 { border-color: #f2c14e; background: color-mix(in srgb, #f2c14e 12%, var(--surface-2)); }
+  .wcard.l4 { border-color: #7fd6ff; background: linear-gradient(160deg, color-mix(in srgb, #7fd6ff 20%, var(--surface-2)), color-mix(in srgb, #b06ab3 18%, var(--surface-2))); }
   .m-stat { text-align: center; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
 
   .result { text-align: center; display: grid; gap: 14px; justify-items: center; padding-top: 20px; }
@@ -592,6 +619,7 @@
     </article>
 
     <div class="rankline" id="rankline"></div>
+    <div id="chests" hidden></div>
 
     <button class="card install" id="install" hidden>
       <img src="icon-192.png" alt="" width="44" height="44">
@@ -637,6 +665,7 @@
   <!-- LUG'AT -->
   <section id="screen-words" hidden>
     <div class="section-title" style="margin-top:4px"><h3>📒 Lug'at</h3><span>So'zni bosing, eshiting</span></div>
+    <button class="cards-btn" id="w-cards" hidden></button>
     <div class="seg" id="w-seg" role="group" aria-label="Darsni tanlang"></div>
     <div class="toolbar">
       <span class="muted" id="w-count"></span>
