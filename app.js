@@ -1388,30 +1388,32 @@
     const s = avaSvg(cfg);
     return s ? `<span class="${cls} has-img">${s}</span>` : `<span class="${cls}">${esc((name || "?")[0].toUpperCase())}</span>`;
   };
-  const AV_HAT = ["hijab", "turban", "hat", "winterHat1", "winterHat02", "winterHat03", "winterHat04"];
-  const AV_TABS = [["s", "Yuz rangi"], ["t", "Soch / ro'mol"], ["hc", "Soch rangi"], ["hat", "Ro'mol rangi"], ["e", "Ko'z"], ["b", "Qosh"],
-    ["m", "Og'iz"], ["f", "Soqol"], ["a", "Ko'zoynak"], ["c", "Kiyim"], ["g", "Rasm"], ["cc", "Kiyim rangi"], ["bg", "Fon"]];
-  const AV_COLORS = new Set(["s", "hc", "hat", "cc", "bg"]);
+  const AV_TABS = [["h", "Soch / ro'mol"], ["hc", "Soch rangi"], ["hj", "Ro'mol rangi"], ["s", "Yuz rangi"], ["e", "Ko'z"], ["b", "Qosh"],
+    ["m", "Og'iz"], ["g", "Ko'zoynak"], ["er", "Sirg'a"], ["f", "Belgi"], ["bg", "Fon"]];
+  const AV_COLORS = new Set(["s", "hc", "hj", "bg"]);
   function avatarEditor() {
     if (!AV) return toast("Avatar yuklanmadi. Sahifani yangilang");
-    let draft = AV.clean(S.avatar || AV.random()), tab = "t";
-    const tabs = () => AV_TABS.filter(([k]) => (k !== "hat" || AV_HAT.includes(draft.t)) && (k !== "g" || draft.c === "graphicShirt"));
+    let draft = AV.clean(S.avatar || AV.random()), tab = "h";
+    const hj = () => draft.h === "hijab";
+    const tabs = () => AV_TABS.filter(([k]) => (k === "hj" ? hj() : !(hj() && (k === "hc" || k === "er"))));
     const draw = () => {
       $("#av-prev").innerHTML = avaSvg(draft);
-      if (!tabs().some(([k]) => k === tab)) tab = "t";
+      if (!tabs().some(([k]) => k === tab)) tab = "h";
       $("#av-tabs").innerHTML = tabs().map(([k, n]) => `<button data-avt="${k}" aria-pressed="${k === tab}">${n}</button>`).join("");
       $("#av-grid").innerHTML = AV.OPTS[tab].map(v => AV_COLORS.has(tab)
         ? `<button class="av-opt sw" data-v="${v}" aria-pressed="${draft[tab] === v}"><span style="background:#${v}"></span></button>`
         : `<button class="av-opt" data-v="${v}" aria-pressed="${draft[tab] === v}">${!v ? "🚫" : avaSvg({ ...draft, [tab]: v })}</button>`).join("");
+      $("#av-name").textContent = AV_TABS.find(([k]) => k === tab)[1];
       $$("[data-avt]").forEach(b => (b.onclick = () => { tab = b.dataset.avt; draw(); }));
       $$("#av-grid .av-opt").forEach(b => (b.onclick = () => { draft = { ...draft, [tab]: b.dataset.v }; draw(); }));
     };
     sheet(`<h3>🧑‍🎨 Mening avatarim</h3>
       <div class="av-prev" id="av-prev"></div>
-      <div class="av-tabs" id="av-tabs"></div>
+      <div class="av-tabs" id="av-tabs"></div><b id="av-name" class="av-name"></b>
       <div class="av-grid" id="av-grid"></div>
       <div class="av-row"><button class="btn btn-soft" id="av-rnd">🎲 Tasodifiy</button><button class="btn btn-brand" id="av-save">💾 Saqlash</button></div>
-      <button class="btn btn-soft btn-block" data-close>Bekor qilish</button>`);
+      <button class="btn btn-soft btn-block" data-close>Bekor qilish</button>
+      <p class="muted av-credit">Avatar dizayni: «Adventurer», Lisa Wischofsky (CC BY 4.0)</p>`);
     $("#av-rnd").onclick = () => { draft = AV.random(); draw(); };
     $("#av-save").onclick = () => {
       S.avatar = draft; closeSheet(); render(); saveResult(0, 0, "avatar", []);
