@@ -339,6 +339,21 @@
   .t-soon .ar { font-size: 54px; font-weight: 700; color: var(--gold); line-height: 1.6; }
   .t-soon b { font-size: 18px; } .t-soon p { margin: 4px 0 10px; }
   .pbox .go { font-size: 22px; color: var(--muted); }
+  /* 🧑‍🎨 Avatar */
+  .ava.has-img { background: none; padding: 0; overflow: hidden; }
+  .ava svg, .big-ava svg, .av-prev svg, .av-opt svg { width: 100%; height: 100%; display: block; }
+  .big-ava.has-img { width: 104px; height: 104px; border-radius: 50%; padding: 0; overflow: hidden; background: none; border: 3px solid var(--gold-line); }
+  .champ-ava { width: 46px; height: 46px; float: right; margin-left: 10px; border-radius: 50%; overflow: hidden; border: 2px solid rgba(255,255,255,.7); }
+  .champ-ava svg { width: 100%; height: 100%; display: block; }
+  .av-prev { width: 150px; height: 150px; margin: 0 auto; border-radius: 50%; overflow: hidden; border: 3px solid var(--gold-line); }
+  .av-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+  .av-tabs button { flex: none; padding: 7px 11px; border-radius: 999px; background: var(--surface-2); font-weight: 600; font-size: 13px; }
+  .av-tabs button[aria-pressed="true"] { background: var(--brand); color: var(--brand-ink); }
+  .av-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); grid-auto-rows: 66px; gap: 8px; max-height: 236px; overflow-y: auto; padding: 2px; }
+  .av-opt { height: 66px; border-radius: 16px; background: var(--surface-2); border: 2px solid transparent; overflow: hidden; padding: 0; display: grid; place-items: center; font-size: 22px; }
+  .av-opt[aria-pressed="true"] { border-color: var(--gold); box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 25%, transparent); }
+  .av-opt.sw span { width: 60%; height: 60%; border-radius: 50%; border: 2px solid rgba(0,0,0,.15); }
+  .av-row { display: flex; gap: 8px; } .av-row .btn { flex: 1; }
   .m-stat { text-align: center; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
 
   .result { text-align: center; display: grid; gap: 14px; justify-items: center; padding-top: 20px; }
@@ -588,7 +603,8 @@
   <!-- PROFIL -->
   <section id="screen-profile" hidden>
     <div class="card profile-card">
-      <div class="big-ava" id="p-ava"></div>
+      <button class="big-ava" id="p-ava" aria-label="Avatarni o'zgartirish"></button>
+      <button class="link-btn" id="p-ava-edit">🧑‍🎨 Avatarimni yaratish</button>
       <div style="font-family:var(--f-display);font-weight:600;font-size:18px" id="p-name"></div>
       <span class="rank-title" id="p-rank"></span>
       <div class="stats">
@@ -719,6 +735,7 @@
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script src="data.js"></script>
+<script src="avatar.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

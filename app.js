@@ -870,16 +870,16 @@
 
   function duelSheet() {
     const inc = INBOX.incoming.map(d => `
-      <div class="duel-item"><span class="ava">${esc(d.from[0])}</span>
+      <div class="duel-item">${avaHtml(d.ava, d.from)}
         <span class="t"><b>${esc(d.from)}</b><small>sizni duelga chaqirdi</small></span>
         <button class="btn btn-danger" data-decline="${d.id}" aria-label="Rad etish">✕</button>
         <button class="btn btn-brand" data-play="${d.id}">O'ynash</button></div>`).join("");
     const wait = INBOX.waiting.map(d => `
-      <div class="duel-item"><span class="ava">${esc(d.vs[0])}</span>
+      <div class="duel-item">${avaHtml(d.ava, d.vs)}
         <span class="t"><b>${esc(d.vs)}</b><small>${d.played ? "siz o'ynadingiz, raqib kutilmoqda ⏳" : "hali o'ynamadingiz"}</small></span>
         ${d.played ? "" : `<button class="btn btn-brand" data-play="${d.id}">O'ynash</button>`}</div>`).join("");
     const res = INBOX.results.slice(0, 5).map(d => `
-      <div class="duel-item"><span class="ava">${esc(d.vs[0])}</span>
+      <div class="duel-item">${avaHtml(d.ava, d.vs)}
         <span class="t"><b>${esc(d.vs)}</b><small>${d.my} : ${d.their}</small></span>
         <span class="tag ${d.outcome}">${{ win: "🏆 G'alaba", lose: "Mag'lubiyat", draw: "🤝 Durang" }[d.outcome]}</span></div>`).join("");
     sheet(`<h3>⚔️ Duel</h3>
@@ -903,7 +903,7 @@
     if (!mates.length) return toast("Guruhda hali boshqa o'quvchi yo'q");
     sheet(`<h3>⚔️ Kimni chaqiramiz?</h3>
       <button class="btn btn-danger btn-block" data-opp="${esc(pick(mates).id)}">🎲 Tasodifiy raqib</button>
-      <div>${mates.map(m => `<div class="duel-item"><span class="ava">${esc(m.name[0])}</span><span class="t"><b>${esc(m.name)}</b></span>
+      <div>${mates.map(m => `<div class="duel-item">${avaHtml(m.ava, m.name)}<span class="t"><b>${esc(m.name)}</b></span>
         <button class="btn btn-soft" data-opp="${esc(m.id)}">Chaqirish</button></div>`).join("")}</div>
       <button class="btn btn-soft btn-block" data-close>Bekor qilish</button>`);
     $$("[data-opp]").forEach(b => (b.onclick = async () => {
@@ -1374,8 +1374,58 @@
     $$("#w-phrases .phrase").forEach(b => (b.onclick = () => { const p = phr[+b.dataset.pi]; if (p.audio) play(p.audio); }));
   }
 
+  // ---------- 🧑‍🎨 Avatar: multfilm qahramoni (DiceBear Avataaars, bepul) ----------
+  // Sozlamalari S.avatar da (bazada saqlanadi); reyting/duel ro'yxatlarida server 'ava' qilib qaytaradi
+  const AV = window.DodAvatar;
+  const avaCache = new Map();
+  function avaSvg(cfg) {
+    if (!AV || !cfg) return "";
+    const k = JSON.stringify(cfg);
+    if (!avaCache.has(k)) { try { avaCache.set(k, AV.svg(cfg)); } catch { avaCache.set(k, ""); } }
+    return avaCache.get(k);
+  }
+  const avaHtml = (cfg, name, cls = "ava") => {
+    const s = avaSvg(cfg);
+    return s ? `<span class="${cls} has-img">${s}</span>` : `<span class="${cls}">${esc((name || "?")[0].toUpperCase())}</span>`;
+  };
+  const AV_HAT = ["hijab", "turban", "hat", "winterHat1", "winterHat02", "winterHat03", "winterHat04"];
+  const AV_TABS = [["s", "Yuz rangi"], ["t", "Soch / ro'mol"], ["hc", "Soch rangi"], ["hat", "Ro'mol rangi"], ["e", "Ko'z"], ["b", "Qosh"],
+    ["m", "Og'iz"], ["f", "Soqol"], ["a", "Ko'zoynak"], ["c", "Kiyim"], ["g", "Rasm"], ["cc", "Kiyim rangi"], ["bg", "Fon"]];
+  const AV_COLORS = new Set(["s", "hc", "hat", "cc", "bg"]);
+  function avatarEditor() {
+    if (!AV) return toast("Avatar yuklanmadi. Sahifani yangilang");
+    let draft = AV.clean(S.avatar || AV.random()), tab = "t";
+    const tabs = () => AV_TABS.filter(([k]) => (k !== "hat" || AV_HAT.includes(draft.t)) && (k !== "g" || draft.c === "graphicShirt"));
+    const draw = () => {
+      $("#av-prev").innerHTML = avaSvg(draft);
+      if (!tabs().some(([k]) => k === tab)) tab = "t";
+      $("#av-tabs").innerHTML = tabs().map(([k, n]) => `<button data-avt="${k}" aria-pressed="${k === tab}">${n}</button>`).join("");
+      $("#av-grid").innerHTML = AV.OPTS[tab].map(v => AV_COLORS.has(tab)
+        ? `<button class="av-opt sw" data-v="${v}" aria-pressed="${draft[tab] === v}"><span style="background:#${v}"></span></button>`
+        : `<button class="av-opt" data-v="${v}" aria-pressed="${draft[tab] === v}">${!v ? "🚫" : avaSvg({ ...draft, [tab]: v })}</button>`).join("");
+      $$("[data-avt]").forEach(b => (b.onclick = () => { tab = b.dataset.avt; draw(); }));
+      $$("#av-grid .av-opt").forEach(b => (b.onclick = () => { draft = { ...draft, [tab]: b.dataset.v }; draw(); }));
+    };
+    sheet(`<h3>🧑‍🎨 Mening avatarim</h3>
+      <div class="av-prev" id="av-prev"></div>
+      <div class="av-tabs" id="av-tabs"></div>
+      <div class="av-grid" id="av-grid"></div>
+      <div class="av-row"><button class="btn btn-soft" id="av-rnd">🎲 Tasodifiy</button><button class="btn btn-brand" id="av-save">💾 Saqlash</button></div>
+      <button class="btn btn-soft btn-block" data-close>Bekor qilish</button>`);
+    $("#av-rnd").onclick = () => { draft = AV.random(); draw(); };
+    $("#av-save").onclick = () => {
+      S.avatar = draft; closeSheet(); render(); saveResult(0, 0, "avatar", []);
+      toast("✨ Avatar saqlandi! Endi reyting va duelda ko'rinadi");
+    };
+    draw();
+  }
+
   function renderProfile() {
-    $("#p-ava").textContent = (ME.name || "D")[0].toUpperCase();
+    const pa = $("#p-ava"), mine = avaSvg(S.avatar);
+    pa.classList.toggle("has-img", !!mine);
+    if (mine) pa.innerHTML = mine; else pa.textContent = (ME.name || "D")[0].toUpperCase();
+    pa.onclick = $("#p-ava-edit").onclick = avatarEditor;
+    $("#p-ava-edit").textContent = S.avatar ? "🧑‍🎨 Avatarni o'zgartirish" : "🧑‍🎨 Avatarimni yaratish";
     $("#p-name").textContent = ME.name;
     $("#p-rank").textContent = rankOf(ME.xp);
     $("#p-xp").textContent = ME.xp;
@@ -1401,10 +1451,10 @@
         if (boardMode !== "month") return;
         const mon = MONTHS[+b.month.slice(5) - 1];
         const mine = b.mine && !b.top.some(r => r.id === b.me)
-          ? `<div class="row me"><span class="rank">${b.mine.rank}</span><span class="ava">${esc(ME.name[0])}</span><span class="name"><b>${esc(ME.name)} (siz)</b></span><span class="xp">${b.mine.xp}</span></div>` : "";
+          ? `<div class="row me"><span class="rank">${b.mine.rank}</span>${avaHtml(S.avatar, ME.name)}<span class="name"><b>${esc(ME.name)} (siz)</b></span><span class="xp">${b.mine.xp}</span></div>` : "";
         $("#t-board").innerHTML = `<p class="muted" style="margin:6px 0">🗓 ${cap(mon)} oyi · TOP ${b.top.length}</p>` + (b.top.length ? b.top.map(r => `
           <div class="row ${r.id === b.me ? "me" : ""}">
-            <span class="rank">${medal[r.rank - 1] || r.rank}</span><span class="ava">${esc(r.name[0])}</span>
+            <span class="rank">${medal[r.rank - 1] || r.rank}</span>${avaHtml(r.ava, r.name)}
             <span class="name"><b>${esc(r.name)}${r.id === b.me ? " (siz)" : ""}</b><small class="muted">${esc(r.group)}</small></span>
             <span class="xp">${r.xp}</span></div>`).join("") + mine
           : `<p class="muted">Bu oy hali hech kim ball yig'madi. Birinchi bo'ling! 🔥</p>`);
@@ -1415,10 +1465,10 @@
       const b = await rpc("leaderboard", { p_token: TOKEN });
       if (boardMode !== "week") return;
       $("#t-champ").hidden = !b.champion;
-      if (b.champion) $("#t-champ").innerHTML = `<small>👑 O'tgan hafta chempioni</small><b>${esc(b.champion.name)}</b> · ${b.champion.xp} XP`;
+      if (b.champion) $("#t-champ").innerHTML = `${avaSvg(b.champion.ava) ? `<span class="champ-ava">${avaSvg(b.champion.ava)}</span>` : ""}<small>👑 O'tgan hafta chempioni</small><b>${esc(b.champion.name)}</b> · ${b.champion.xp} XP`;
       $("#t-board").innerHTML = b.week.length ? b.week.map((r, i) => `
         <div class="row ${r.id === b.me ? "me" : ""}">
-          <span class="rank">${medal[i] || i + 1}</span><span class="ava">${esc(r.name[0])}</span>
+          <span class="rank">${medal[i] || i + 1}</span>${avaHtml(r.ava, r.name)}
           <span class="name"><b>${esc(r.name)}${b.champion && b.champion.id === r.id ? " 👑" : ""}${r.id === b.me ? " (siz)" : ""}</b></span>
           <span class="xp">${r.xp}</span></div>`).join("")
         : `<p class="muted">Bu hafta hali hech kim ball yig'madi. Birinchi bo'ling! 🔥</p>`;
