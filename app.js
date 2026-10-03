@@ -1535,12 +1535,78 @@
     render();
     flushPending();
     loadInbox();
+    loadMyAttendance();
     loadSpeakBadge();
     // Taklif havolasi orqali kelgan bo'lsa — taklif qilganni bog'laymiz (faqat yangi hisob uchun ishlaydi)
     const ref = store.get(K_REF);
     if (ref) { store.del(K_REF); try { const r = await rpc("ref_set", { p_token: TOKEN, p_ref: ref }); if (r.ok) toast(`🤝 ${r.inviter} taklifi qabul qilindi! Birinchi darsni o'ting, ikkalangizga +${REF_BONUS} XP`); } catch { /* */ } }
     loadRef();
     refClaim();
+  }
+
+  // ---------- 📝 Jonli dars davomati: kelmadi −50 XP, kechikdi −20 XP (ustoz qarori) ----------
+  const ATT = { present: ["✅", "Keldi", 0], late: ["⏰", "Kechikdi", 20], absent: ["❌", "Kelmadi", 50] };
+  const MONTHS_GEN = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avgust", "sentabr", "oktabr", "noyabr", "dekabr"];
+  const dayName = d => `${+d.slice(8)}-${MONTHS_GEN[+d.slice(5, 7) - 1]}`;
+  let attDay = null, attToday = null;
+
+  async function teacherAttLoad() {
+    const box = $("#tc-att");
+    let r;
+    try { r = await rpc("teacher_attendance", { p_token: TT, p_day: attDay || (TC && TC.today) || today() }); }
+    catch (e) { box.innerHTML = `<div class="card"><p>${esc(errText(e))}</p></div>`; return; }
+    attDay = r.day; attToday = r.today;
+    const st = r.students, cnt = k => st.filter(s => s.status === k).length, none = st.filter(s => !s.status).length;
+    box.innerHTML = `
+      <p class="muted" style="font-size:12.5px;margin:0 2px 10px">❌ Kelmadi: <b>−50 XP</b> · ⏰ Kechikdi: <b>−20 XP</b>. Belgini o'zgartirsangiz, XP avtomatik qaytariladi.</p>
+      <div class="card">
+        <div class="att-head"><button class="btn btn-soft" data-ad="-1" aria-label="Oldingi kun">◀</button>
+          <b>${attDay === attToday ? "Bugun, " : ""}${dayName(attDay)}</b>
+          <button class="btn btn-soft" data-ad="1" ${attDay >= attToday ? "disabled" : ""} aria-label="Keyingi kun">▶</button></div>
+        <div class="att-sum"><span>✅ ${cnt("present")}</span><span>⏰ ${cnt("late")}</span><span>❌ ${cnt("absent")}</span>${none ? `<span>⬜ belgilanmagan: ${none}</span>` : ""}</div>
+        ${none ? `<button class="btn btn-soft btn-block" id="att-all" style="margin-bottom:6px">✅ Qolganlarning hammasi keldi</button>` : ""}
+        ${st.length ? st.map(s => `<div class="att-row">${avaHtml(s.ava, s.name)}<span class="name">${esc(s.name)}</span>
+          <span class="att-btns">${Object.entries(ATT).map(([k, [ic, n]]) => `<button data-sid="${s.id}" data-s="${k}" aria-pressed="${s.status === k}" aria-label="${n}" title="${n}">${ic}</button>`).join("")}</span></div>`).join("")
+          : `<p class="muted">Guruhda hali o'quvchi yo'q.</p>`}
+      </div>`;
+    $$("[data-ad]").forEach(b => (b.onclick = () => { attDay = addDays(attDay, +b.dataset.ad); teacherAttLoad(); }));
+    $$(".att-btns button").forEach(b => (b.onclick = async () => {
+      const cur = st.find(s => s.id === b.dataset.sid);
+      const next = cur.status === b.dataset.s ? null : b.dataset.s;   // qayta bossa — belgi olib tashlanadi
+      try {
+        const res = await rpc("teacher_mark", { p_token: TT, p_day: attDay, p_student: cur.id, p_status: next });
+        if (res.delta > 0) toast(`${cur.name}: −${res.delta} XP`);
+        else if (res.delta < 0) toast(`${cur.name}: +${-res.delta} XP qaytarildi`);
+      } catch (e) { toast(e.message === "BAD_DAY" ? "Faqat oxirgi 30 kunni belgilash mumkin" : errText(e)); }
+      teacherAttLoad();
+    }));
+    const all = $("#att-all");
+    if (all) all.onclick = async () => {
+      all.disabled = true;
+      for (const s of st.filter(x => !x.status)) {
+        try { await rpc("teacher_mark", { p_token: TT, p_day: attDay, p_student: s.id, p_status: "present" }); } catch { /* keyingisi */ }
+      }
+      teacherAttLoad();
+    };
+  }
+
+  // O'quvchi: profilda jonli darslar davomati; yangi jarima bo'lsa, bir marta xabar
+  async function loadMyAttendance() {
+    let list;
+    try { list = await rpc("attendance_mine", { p_token: TOKEN }); } catch { return; }
+    $("#p-att-wrap").hidden = !list.length;
+    if (!list.length) return;
+    const c = k => list.filter(x => x.status === k).length;
+    $("#p-att-sum").textContent = `${Math.round((c("present") + c("late")) * 100 / list.length)}% qatnashdingiz`;
+    $("#p-att").innerHTML = `<div class="att-stat"><div><b>${c("present")}</b><small>✅ keldi</small></div><div><b>${c("late")}</b><small>⏰ kechikdi</small></div><div><b>${c("absent")}</b><small>❌ kelmadi</small></div></div>`
+      + list.slice(0, 7).map(x => `<div class="att-row"><span class="name">${ATT[x.status][0]} ${dayName(x.day)}</span><small>${ATT[x.status][1]}${x.fine ? ` · −${x.fine} XP` : ""}</small></div>`).join("");
+    const seen = new Set((() => { try { return JSON.parse(store.get("dod_att_seen") || "[]"); } catch { return []; } })());
+    const fresh = list.filter(x => x.fine && !seen.has(x.day + x.status));
+    if (fresh.length) {
+      const x = fresh[0];
+      setTimeout(() => toast(`${ATT[x.status][0]} ${dayName(x.day)} darsiga ${x.status === "late" ? "kechikdingiz" : "kelmadingiz"}: −${x.fine} XP`), 1500);
+      store.set("dod_att_seen", JSON.stringify([...seen, ...list.filter(y => y.fine).map(y => y.day + y.status)].slice(-60)));
+    }
   }
 
   // ---------- Ustoz paneli ----------
@@ -1779,10 +1845,11 @@
     $(".tabbar").hidden = true;
     $("#tc-exam").onclick = () => teacherSet(null, !TC.group.exam_open);
     $("#tc-report").onclick = () => teacherReport(0);
-    $("#tc-refresh").onclick = () => { teacherLoad(); teacherSpeakLoad(); };
+    $("#tc-refresh").onclick = () => { teacherLoad(); teacherSpeakLoad(); if (!$('[data-tcp="attend"]').hidden) teacherAttLoad(); };
     $$("[data-tct]").forEach(b => (b.onclick = () => {
       $$("[data-tct]").forEach(x => x.setAttribute("aria-pressed", x === b));
       $$("[data-tcp]").forEach(p => (p.hidden = p.dataset.tcp !== b.dataset.tct));
+      if (b.dataset.tct === "attend") teacherAttLoad();
       window.scrollTo({ top: 0 });
     }));
     $$("[data-pass]").forEach(b => (b.onclick = passSheet));
