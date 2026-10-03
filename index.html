@@ -391,6 +391,16 @@
   .prog-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .pg { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px; box-shadow: var(--shadow); display: grid; gap: 6px; }
   .pg small { color: var(--muted); font-weight: 600; } .pg b { font-family: var(--f-display); font-size: 20px; } .pg span { font-size: 12px; color: var(--muted); }
+  /* 🧪 Kuboklar va arenalar */
+  .arena { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: linear-gradient(150deg, #2B4A6B, #1C2E44); color: #fff; border-radius: var(--r-lg); padding: 12px 14px; margin-bottom: 4px; box-shadow: var(--shadow); }
+  .arena-ic { font-size: 38px; flex: none; } .arena .t { flex: 1; display: grid; gap: 4px; min-width: 0; }
+  .arena small { opacity: .85; font-size: 12px; } .arena b { font-family: var(--f-display); font-size: 17px; }
+  .arena .bar { background: rgba(255,255,255,.18); } .arena .bar i { background: #F2C14E; }
+  .arena-tr { font-family: var(--f-display); font-weight: 700; font-size: 18px; white-space: nowrap; }
+  .arenas { display: grid; gap: 6px; }
+  .ar-step { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 12px; background: var(--surface-2); opacity: .55; }
+  .ar-step span { font-size: 24px; } .ar-step b { flex: 1; } .ar-step small { color: var(--muted); font-weight: 700; }
+  .ar-step.on { opacity: 1; } .ar-step.here { outline: 2px solid var(--gold); }
   .m-stat { text-align: center; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
 
   .result { text-align: center; display: grid; gap: 14px; justify-items: center; padding-top: 20px; }

@@ -899,6 +899,36 @@
     } catch { /* internet bo'lmasa, keyinroq */ }
   }
 
+  // ---------- 🧪 SINOV: 🏆 kuboklar va arenalar (faqat ustoz o'quvchi sifatida kirganda ko'rinadi) ----------
+  const BETA = () => !!TT;
+  const ARENAS = [[0, "🏜️", "Dubay arenasi"], [200, "🏛️", "Qohira arenasi"], [500, "🌴", "Marrakesh arenasi"],
+    [900, "🏰", "Ammon arenasi"], [1400, "🏙️", "Bag'dod arenasi"], [2000, "👑", "Chempionlar arenasi"]];
+  const TROPHY = { win: 30, lose: -20, draw: 5 };
+  const arenaIdx = t => ARENAS.filter(a => t >= a[0]).length - 1;
+  let TROPHIES = null;
+  async function loadTrophies() {
+    try { TROPHIES = await rpc("trophies_board", { p_token: TOKEN }); } catch { /* keyinroq */ }
+    return TROPHIES;
+  }
+  function arenaCard(t) {
+    const i = arenaIdx(t), [from, ic, name] = ARENAS[i], next = ARENAS[i + 1];
+    const pct = next ? Math.round((t - from) * 100 / (next[0] - from)) : 100;
+    return `<button class="arena" id="arena-open"><span class="arena-ic">${ic}</span><span class="t"><small>🧪 Sinov · ${MONTHS[new Date().getMonth()]} mavsumi</small><b>${name}</b>
+      <span class="bar"><i style="width:${pct}%"></i></span><small>${next ? `${next[1]} ${next[2]}gacha: ${next[0] - t} 🏆` : "Eng yuqori arena! 👑"}</small></span>
+      <span class="arena-tr">🏆 ${t}</span></button>`;
+  }
+  function trophySheet() {
+    const b = TROPHIES || { board: [], mine: 0, me: null };
+    sheet(`<h3>🏆 Kuboklar</h3>
+      <p>Duelda yutsangiz <b style="color:var(--ink)">+30 🏆</b>, yutqazsangiz <b style="color:var(--ink)">−20 🏆</b>, durang <b style="color:var(--ink)">+5</b>. Har oy yangi mavsum boshlanadi.</p>
+      <div class="arenas">${ARENAS.map(([from, ic, name], i) => `<div class="ar-step ${b.mine >= from ? "on" : ""} ${arenaIdx(b.mine) === i ? "here" : ""}"><span>${ic}</span><b>${name}</b><small>${from} 🏆</small></div>`).join("")}</div>
+      <h3 style="font-size:15px;margin-top:6px">Guruhda kubok reytingi</h3>
+      <div class="card">${b.board.length ? b.board.map((r, i) => `<div class="prog-row"><span class="rk">${i + 1}</span>${avaHtml(r.ava, r.name)}
+        <span class="nm"><b>${esc(r.name)}${r.id === b.me ? " (siz)" : ""}</b><small>${ARENAS[arenaIdx(r.tr)][1]} ${ARENAS[arenaIdx(r.tr)][2]}</small></span><span class="val">🏆 ${r.tr}</span></div>`).join("")
+        : `<p class="muted">Bu mavsumda hali hech kim kubok yutmadi. Birinchi bo'ling! ⚔️</p>`}</div>
+      <button class="btn btn-soft btn-block" data-close>Yopish</button>`);
+  }
+
   function duelSheet() {
     const inc = INBOX.incoming.map(d => `
       <div class="duel-item">${avaHtml(d.ava, d.from)}
@@ -914,6 +944,7 @@
         <span class="t"><b>${esc(d.vs)}</b><small>${d.my} : ${d.their}</small></span>
         <span class="tag ${d.outcome}">${{ win: "🏆 G'alaba", lose: "Mag'lubiyat", draw: "🤝 Durang" }[d.outcome]}</span></div>`).join("");
     sheet(`<h3>⚔️ Duel</h3>
+      ${BETA() ? `<div id="duel-arena">${TROPHIES ? arenaCard(TROPHIES.mine) : ""}</div>` : ""}
       <p>${DUEL_QUESTIONS} ta savol, har biriga ${TIMER} soniya. Ikkalangizga bir xil savollar. Ko'p topgan yutadi, teng bo'lsa tezrog'i. G'olibga +30 XP.</p>
       <button class="btn btn-brand btn-block" id="duel-new">➕ Yangi duel: raqib tanlash</button>
       ${inc ? `<h3 style="font-size:15px;margin-top:6px">📨 Sizga takliflar</h3><div>${inc}</div>` : ""}
@@ -921,6 +952,11 @@
       ${res ? `<h3 style="font-size:15px;margin-top:6px">📜 So'nggi natijalar</h3><div>${res}</div>` : ""}
       <button class="btn btn-soft btn-block" data-close>Yopish</button>`);
     $("#duel-new").onclick = pickOpponent;
+    if (BETA()) {
+      const bindArena = () => { const a = $("#arena-open"); if (a) a.onclick = trophySheet; };
+      bindArena();
+      loadTrophies().then(t => { const box = $("#duel-arena"); if (t && box) { box.innerHTML = arenaCard(t.mine); bindArena(); } });
+    }
     $$("[data-play]").forEach(b => (b.onclick = () => playDuel(+b.dataset.play)));
     $$("[data-decline]").forEach(b => (b.onclick = async () => {
       try { await rpc("duel_decline", { p_token: TOKEN, p_id: +b.dataset.decline }); } catch { /* */ }
@@ -968,6 +1004,16 @@
     if (res.status === "done") {
       head = { win: "🎉 Siz yutdingiz!", lose: "😤 Bu safar yutqazdingiz. Revansh?", draw: "🤝 Durang! Kuchlar teng." }[res.outcome];
       pill = `<span class="pill green">⭐ +${{ win: 30, draw: 15, lose: 5 }[res.outcome]} XP</span>`;
+      if (BETA()) {
+        const before = TROPHIES ? TROPHIES.mine : null, d = TROPHY[res.outcome];
+        pill += `<span class="pill gold">🏆 ${d > 0 ? "+" : ""}${d}</span>`;
+        const t = await loadTrophies();
+        if (t && before != null && arenaIdx(t.mine) > arenaIdx(before)) {
+          const a = ARENAS[arenaIdx(t.mine)];
+          pill += `<div class="new-badge">🎉 Yangi arena ochildi: ${a[1]} ${a[2]}!</div>`;
+          sfx("badge");
+        }
+      }
     } else if (res.status === "waiting") head = "Siz tugatdingiz! Raqib o'ynagach natija chiqadi ⏳";
     else head = res.msg;
     $("#quiz-in").innerHTML = `
@@ -1568,6 +1614,7 @@
     loadInbox();
     loadMyAttendance();
     loadMyProgress();
+    if (BETA()) loadTrophies();
     loadSpeakBadge();
     // Taklif havolasi orqali kelgan bo'lsa — taklif qilganni bog'laymiz (faqat yangi hisob uchun ishlaydi)
     const ref = store.get(K_REF);
