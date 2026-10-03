@@ -373,6 +373,24 @@
   .att-card .att-row small { color: var(--muted); }
   .att-stat { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; text-align: center; }
   .att-stat div { background: var(--surface-2); border-radius: 12px; padding: 8px; } .att-stat b { display: block; font-size: 18px; }
+  /* 📈 Progress */
+  .prize { background: linear-gradient(150deg, #8A6A26, #D6A94E); color: #fff; border-radius: var(--r-lg); padding: 14px; box-shadow: var(--shadow); margin-bottom: 12px; }
+  .prize > small { display: block; opacity: .9; font-weight: 600; } .prize > b { font-family: var(--f-display); font-size: 17px; }
+  .podium { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; text-align: center; }
+  .podium div { background: rgba(0,0,0,.18); border-radius: 14px; padding: 8px 4px; display: grid; justify-items: center; gap: 2px; }
+  .podium .ava { width: 44px; height: 44px; } .podium small { font-size: 11.5px; opacity: .9; }
+  .podium b { font-size: 13px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .prog-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+  .prog-row:last-child { border-bottom: 0; }
+  .prog-row .rk { width: 22px; text-align: center; font-weight: 700; color: var(--muted); flex: none; }
+  .prog-row .nm { flex: 1; min-width: 0; display: grid; gap: 2px; }
+  .prog-row .nm b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .prog-row .nm small { color: var(--muted); font-size: 12px; }
+  .prog-row .val { font-family: var(--f-display); font-weight: 700; font-size: 16px; white-space: nowrap; }
+  .idle { color: var(--bad); font-weight: 700; }
+  .prog-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pg { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px; box-shadow: var(--shadow); display: grid; gap: 6px; }
+  .pg small { color: var(--muted); font-weight: 600; } .pg b { font-family: var(--f-display); font-size: 20px; } .pg span { font-size: 12px; color: var(--muted); }
   .m-stat { text-align: center; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
 
   .result { text-align: center; display: grid; gap: 14px; justify-items: center; padding-top: 20px; }
@@ -633,6 +651,7 @@
         <div class="stat"><b id="p-exam"></b><small>imtihon</small></div>
       </div>
     </div>
+    <div id="p-prog-wrap" hidden><div class="section-title"><h3>📊 Mening progressim</h3><span id="p-prog-sum"></span></div><div class="prog-grid" id="p-prog"></div></div>
     <div id="p-att-wrap" hidden><div class="section-title"><h3>📝 Jonli darslar</h3><span id="p-att-sum"></span></div><div class="card att-card" id="p-att"></div></div>
     <div class="section-title"><h3>🏅 Nishonlar</h3><span id="p-badge-sum"></span></div>
     <div class="badges" id="p-badges"></div>
@@ -648,6 +667,13 @@
       <div class="seg" role="group" aria-label="Ko'rinishni tanlang" style="margin:0">
         <button type="button" data-style-pick="premium">🌙 Premium</button>
         <button type="button" data-style-pick="krem">☀️ Krem</button>
+      </div>
+    </div>
+    <div class="card style-pick" style="margin-top:8px">
+      <b>🔔 Ovoz effektlari</b>
+      <div class="seg" role="group" aria-label="Ovoz effektlari" style="margin:0">
+        <button type="button" data-sfx="1">🔊 Yoqilgan</button>
+        <button type="button" data-sfx="0">🔇 O'chiq</button>
       </div>
     </div>
     <div class="settings">
@@ -712,6 +738,7 @@
     </div>
     <div class="seg tc-tabs" role="tablist">
       <button type="button" data-tct="home" aria-pressed="true">📊 Umumiy</button>
+      <button type="button" data-tct="progress" aria-pressed="false">📈 Progress</button>
       <button type="button" data-tct="students" aria-pressed="false">👥 Talabalar</button>
       <button type="button" data-tct="attend" aria-pressed="false">📝 Davomat</button>
       <button type="button" data-tct="speak" aria-pressed="false">🎤 Ovozlar <span class="badge-count" id="tc-speak-count" hidden></span></button>
@@ -736,6 +763,8 @@
       <div class="tc-list" id="tc-list"></div>
       <details class="card tc-more"><summary>🤝 Takliflar <small class="muted" id="tc-refs-sum"></small></summary><div id="tc-refs"></div></details>
     </div>
+
+    <div data-tcp="progress" hidden><div id="tc-prog"></div></div>
 
     <div data-tcp="attend" hidden><div id="tc-att"></div></div>
 

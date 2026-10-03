@@ -144,6 +144,35 @@
     playSeq.id = (playSeq.id || 0) + 1;   // ketma-ket o'qish ketayotgan bo'lsa, to'xtaydi
     try { if (player) player.pause(); player = new Audio("audio/" + file); player.play().catch(() => toast("🔊 Ovozni yoqish uchun ekranga bir marta bosing")); } catch { /* ovozsiz davom */ }
   }
+  // 🔔 Ovoz effektlari: brauzerning o'zida yaratiladi (fayl yo'q). Profilda o'chirish mumkin (dod_sfx = "0")
+  let actx = null;
+  const sfxOn = () => store.get("dod_sfx") !== "0";
+  function sfx(kind) {
+    if (!sfxOn()) return;
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === "suspended") actx.resume();
+      const n = actx.currentTime;
+      const T = (f, d, dur, type = "triangle", v = 0.16) => {
+        const o = actx.createOscillator(), g = actx.createGain();
+        o.type = type; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, n + d);
+        g.gain.exponentialRampToValueAtTime(v, n + d + 0.015);
+        g.gain.exponentialRampToValueAtTime(0.0001, n + d + dur);
+        o.connect(g).connect(actx.destination); o.start(n + d); o.stop(n + d + dur + 0.05);
+      };
+      ({
+        ok: () => { T(880, 0, 0.12); T(1318.5, 0.09, 0.24); },                                 // to'g'ri: «ding-ding»
+        bad: () => { T(233, 0, 0.16, "square", 0.05); T(196, 0.13, 0.26, "square", 0.05); },  // xato: yumshoq past ovoz
+        tap: () => T(700, 0, 0.05, "sine", 0.06),
+        pop: () => T(1046.5, 0, 0.08, "sine", 0.12),
+        win: () => [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => T(f, i * 0.11, 0.3, "triangle", 0.15)),   // g'alaba
+        done: () => { T(523.25, 0, 0.18, "triangle", 0.12); T(659.25, 0.15, 0.32, "triangle", 0.12); },
+        badge: () => [783.99, 987.77, 1174.66, 1567.98].forEach((f, i) => T(f, 0.35 + i * 0.07, 0.22, "sine", 0.12)),
+      })[kind]?.();
+    } catch { /* ovozsiz davom */ }
+  }
+
   // Bir nechta gapni ketma-ket o'qish (suhbat, matn). onLine(i) — qaysi gap o'qilyapti, oxirida onLine(-1)
   function playSeq(texts, onLine) {
     const id = (playSeq.id = (playSeq.id || 0) + 1);
@@ -536,7 +565,7 @@
     $$("#bank .wt").forEach(b => (b.onclick = () => {
       const k = +b.dataset.t;
       if (run.locked === run.i || placed.includes(k)) return;
-      placed.push(k); if (q.type === "order") play(q.tiles[k]); draw();
+      placed.push(k); if (q.type === "order") play(q.tiles[k]); else sfx("tap"); draw();
     }));
     $("#check").onclick = () => {
       const ok = placed.map(k => q.tiles[k]).join(joiner) === q.answer.join(joiner);
@@ -597,7 +626,7 @@
       const [a, u] = sel.dataset.side === "ar" ? [sel, b] : [b, sel];
       sel.classList.remove("sel"); sel = null;
       if (q.pairs.some(p => p.ar === a.dataset.v && p.uz === u.dataset.v)) {
-        [a, u].forEach(x => { x.classList.add("good"); x.disabled = true; });
+        [a, u].forEach(x => { x.classList.add("good"); x.disabled = true; }); sfx("pop");
         if (++done === q.pairs.length) {
           clearInterval(run.timer); tick();
           const secs = (Date.now() - run.t0) / 1000;
@@ -605,7 +634,7 @@
           settle(ok, false, "", { fast: ok && secs <= MATCH_FAST, note: `⏱ ${Math.round(secs)} soniya · ${errs ? `❌ ${errs} ta xato` : "xatosiz!"}` });
         }
       } else {
-        errs++; tick();
+        errs++; tick(); sfx("bad");
         [a, u].forEach(x => { x.classList.add("bad"); setTimeout(() => x.classList.remove("bad"), 600); });
       }
     }));
@@ -626,6 +655,7 @@
   function settle(ok, timeout, right, extra = {}) {
     if (!run || run.locked === run.i) return;
     run.locked = run.i;
+    sfx(ok ? "ok" : "bad");
     clearInterval(run.timer);
     const q = run.qs[run.i];
     const secs = Math.min(TIMER, (Date.now() - run.t0) / 1000);
@@ -754,6 +784,7 @@
     if (r.kind !== "review" && r.right < n && Object.keys(S.mistakes).length) pills.push(`<span class="pill soft">❌ Xatolar «Xatolarim» bo'limiga tushdi</span>`);
 
     if (!run || run !== r) return;
+    sfx(pct >= PASS ? "win" : "done"); if (newBadges.length) sfx("badge");
     $("#quiz-in").innerHTML = `
       <div class="result">
         <div class="q-meta">${esc(r.title)}</div>
@@ -1536,6 +1567,7 @@
     flushPending();
     loadInbox();
     loadMyAttendance();
+    loadMyProgress();
     loadSpeakBadge();
     // Taklif havolasi orqali kelgan bo'lsa — taklif qilganni bog'laymiz (faqat yangi hisob uchun ishlaydi)
     const ref = store.get(K_REF);
@@ -1607,6 +1639,57 @@
       setTimeout(() => toast(`${ATT[x.status][0]} ${dayName(x.day)} darsiga ${x.status === "late" ? "kechikdingiz" : "kelmadingiz"}: −${x.fine} XP`), 1500);
       store.set("dod_att_seen", JSON.stringify([...seen, ...list.filter(y => y.fine).map(y => y.day + y.status)].slice(-60)));
     }
+  }
+
+  // ---------- 📈 Progress (Cambridge uslubi) ----------
+  const coursePct = ls => Math.round(Object.values(ls || {}).filter(v => v >= PASS).length * 100 / D.lessons.length);
+  const avgScore = ls => { const v = Object.values(ls || {}); return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : null; };
+  const attPct = a => { const n = a ? a.p + a.l + a.a : 0; return n ? Math.round((a.p + a.l) * 100 / n) : null; };
+  const daysIn = (a, b) => Math.round((new Date(b + "T00:00:00Z") - new Date(a + "T00:00:00Z")) / 86400000) + 1;
+  const PROG_SORTS = [["best", "🔥 Olov"], ["month_xp", "⭐ XP"], ["course", "📚 Kurs"], ["att", "📝 Davomat"], ["active", "📅 Faollik"]];
+  let progSort = "best";
+
+  async function teacherProgLoad() {
+    const box = $("#tc-prog");
+    let r;
+    try { r = await rpc("teacher_progress", { p_token: TT }); }
+    catch (e) { box.innerHTML = `<div class="card"><p>${esc(errText(e))}</p></div>`; return; }
+    const days = daysIn(r.month_start, r.today), mon = MONTHS[+r.month_start.slice(5, 7) - 1];
+    const rows = r.students.map(s => ({ ...s, course: coursePct(s.lessons), avg: avgScore(s.lessons), attp: attPct(s.att),
+      idle: s.last_seen ? Math.floor((Date.now() - new Date(s.last_seen)) / 86400000) : null }));
+    const val = s => progSort === "att" ? (s.attp ?? -1) : s[progSort];
+    rows.sort((a, b) => val(b) - val(a) || b.month_xp - a.month_xp);
+    const top = [...rows].sort((a, b) => b.best - a.best || b.streak - a.streak).filter(s => s.best > 0).slice(0, 3);
+    const show = s => ({ best: `🔥 ${s.best}`, month_xp: `⭐ ${s.month_xp}`, course: `${s.course}%`, att: s.attp == null ? "—" : `${s.attp}%`, active: `${s.active}/${days}` })[progSort];
+    box.innerHTML = `
+      <div class="prize"><small>🏆 ${cap(mon)} sovrini · eng uzun olov</small><b>Oy oxirida 1-o'rindagi g'olib bo'ladi 🎁</b>
+        ${top.length ? `<div class="podium">${top.map((s, i) => `<div><small>${["🥇", "🥈", "🥉"][i]}</small>${avaHtml(s.ava, s.name)}<b>${esc(s.name)}</b><small>🔥 ${s.best} kun</small></div>`).join("")}</div>`
+          : `<p style="margin:8px 0 0;opacity:.9">Bu oy hali hech kim olov yoqmadi.</p>`}</div>
+      <div class="seg" role="group" aria-label="Saralash" style="margin:0 0 10px">${PROG_SORTS.map(([k, n]) => `<button type="button" data-ps="${k}" aria-pressed="${k === progSort}">${n}</button>`).join("")}</div>
+      <p class="muted" style="font-size:12px;margin:0 2px 8px">🔥 olov: oy rekordi (hozirgisi) · 📚 o'tilgan darslar · 📅 ${cap(mon)}da faol kunlar · 📝 jonli darslarga qatnashish</p>
+      <div class="card">${rows.length ? rows.map((s, i) => `<div class="prog-row"><span class="rk">${i + 1}</span>${avaHtml(s.ava, s.name)}
+        <span class="nm"><b>${esc(s.name)}</b><small>🔥 ${s.best} (${s.streak}) · 📚 ${s.course}% · 📅 ${s.active}/${days} · 📝 ${s.attp == null ? "—" : s.attp + "%"}${s.idle >= 2 ? ` · <span class="idle">😴 ${s.idle} kun kirmadi</span>` : ""}</small></span>
+        <span class="val">${show(s)}</span></div>`).join("") : `<p class="muted">Guruhda hali o'quvchi yo'q.</p>`}</div>`;
+    $$("[data-ps]").forEach(b => (b.onclick = () => { progSort = b.dataset.ps; teacherProgLoad(); }));
+  }
+
+  // O'quvchi: profildagi «Mening progressim»
+  async function loadMyProgress() {
+    let p;
+    try { p = await rpc("progress_mine", { p_token: TOKEN }); } catch { return; }
+    const days = daysIn(p.month_start, p.today), passedN = Object.values(S.lessons).filter(v => v >= PASS).length;
+    const avg = avgScore(S.lessons), att = attPct(p.att);
+    const tile = (label, big, sub, pct) => `<div class="pg"><small>${label}</small><b>${big}</b>${pct != null ? `<div class="bar"><i style="width:${Math.max(0, Math.min(100, pct))}%"></i></div>` : ""}<span>${sub}</span></div>`;
+    $("#p-prog-wrap").hidden = false;
+    $("#p-prog-sum").textContent = `guruhda ${p.rank_xp}-o'rin`;
+    $("#p-prog").innerHTML = [
+      tile("📚 Kurs", `${coursePct(S.lessons)}%`, `${passedN}/${D.lessons.length} dars o'tildi`, coursePct(S.lessons)),
+      tile("🎯 O'rtacha natija", avg == null ? "—" : `${avg}%`, "darslardagi eng yaxshi natijalar", avg),
+      tile("🔥 Olov", `${p.streak || 0} kun`, `oy rekordi: ${p.best || 0} · ${p.rank_best}-o'rin`, null),
+      tile("📅 Bu oy faol", `${p.active || 0}/${days}`, "kun ilovada mashq qildingiz", Math.round((p.active || 0) * 100 / days)),
+      tile("⭐ Bu oy XP", p.month_xp || 0, `guruhda ${p.rank_xp}/${p.size}-o'rin`, null),
+      tile("📝 Jonli darslar", att == null ? "—" : `${att}%`, att == null ? "hali belgilanmagan" : "qatnashish", att),
+    ].join("");
   }
 
   // ---------- Ustoz paneli ----------
@@ -1845,11 +1928,12 @@
     $(".tabbar").hidden = true;
     $("#tc-exam").onclick = () => teacherSet(null, !TC.group.exam_open);
     $("#tc-report").onclick = () => teacherReport(0);
-    $("#tc-refresh").onclick = () => { teacherLoad(); teacherSpeakLoad(); if (!$('[data-tcp="attend"]').hidden) teacherAttLoad(); };
+    $("#tc-refresh").onclick = () => { teacherLoad(); teacherSpeakLoad(); if (!$('[data-tcp="attend"]').hidden) teacherAttLoad(); if (!$('[data-tcp="progress"]').hidden) teacherProgLoad(); };
     $$("[data-tct]").forEach(b => (b.onclick = () => {
       $$("[data-tct]").forEach(x => x.setAttribute("aria-pressed", x === b));
       $$("[data-tcp]").forEach(p => (p.hidden = p.dataset.tcp !== b.dataset.tct));
       if (b.dataset.tct === "attend") teacherAttLoad();
+      if (b.dataset.tct === "progress") teacherProgLoad();
       window.scrollTo({ top: 0 });
     }));
     $$("[data-pass]").forEach(b => (b.onclick = passSheet));
@@ -1882,6 +1966,9 @@
   }
   $$("[data-style-pick]").forEach(b => (b.onclick = () => { store.set("dod_style", b.dataset.stylePick); applyStyle(b.dataset.stylePick); }));
   applyStyle(document.documentElement.dataset.style || "premium");
+  const applySfx = () => $$("[data-sfx]").forEach(b => b.setAttribute("aria-pressed", (b.dataset.sfx === "1") === sfxOn()));
+  $$("[data-sfx]").forEach(b => (b.onclick = () => { store.set("dod_sfx", b.dataset.sfx); applySfx(); sfx("ok"); }));
+  applySfx();
   $("#p-rename").hidden = true;   // ism ro'yxatdan o'tishda beriladi, o'zgartirish ustoz orqali
   $("#p-reset").hidden = true;
   $("#p-logout").onclick = () => {
@@ -1894,7 +1981,7 @@
     t.setAttribute("aria-current", "page");
     ["home", "today", "lessons", "top", "words", "profile"].forEach(s => ($("#screen-" + s).hidden = s !== t.dataset.tab));
     if (t.dataset.tab === "today") { todaySel = null; renderToday(); }
-    if (t.dataset.tab === "top") renderBoard();    window.scrollTo({ top: 0 });
+    if (t.dataset.tab === "top") renderBoard(); if (t.dataset.tab === "profile") { loadMyProgress(); loadMyAttendance(); }    window.scrollTo({ top: 0 });
   }));
   document.addEventListener("keydown", e => {
     if (!run || $("#sheet-root").innerHTML || e.target.tagName === "INPUT") return;
