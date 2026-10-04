@@ -428,6 +428,24 @@
   .wcard .ar { font-size: 19px; font-weight: 700; line-height: 1.6; } .wcard small { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .wcard.l0 { opacity: .45; } .wcard.l1 { border-color: #b07c4f; } .wcard.l2 { border-color: #a9b4c2; } .wcard.l3 { border-color: #f2c14e; background: color-mix(in srgb, #f2c14e 12%, var(--surface-2)); }
   .wcard.l4 { border-color: #7fd6ff; background: linear-gradient(160deg, color-mix(in srgb, #7fd6ff 20%, var(--surface-2)), color-mix(in srgb, #b06ab3 18%, var(--surface-2))); }
+  /* 🗺 Sayohat xaritasi (multfilm uslubi) */
+  .wmap { position: relative; border-radius: 22px; overflow: hidden; margin: 4px 0 10px;
+    background: radial-gradient(circle at 20% 15%, rgba(255,255,255,.25) 0 2px, transparent 3px) 0 0 / 38px 38px, linear-gradient(180deg, #7fd3f7 0%, #4fb3e8 55%, #2f8fd0 100%); }
+  .wmap svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .wmap path { fill: none; stroke: rgba(255,255,255,.75); stroke-width: 4; stroke-dasharray: 2 9; stroke-linecap: round; }
+  .wmap path.done { stroke: #ffd56b; }
+  .wmap .deco { position: absolute; font-size: 22px; opacity: .85; transform: translate(-50%, -50%); }
+  .isle { position: absolute; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: 2px; width: 46%; text-align: center; }
+  .isle .land { width: 74px; height: 64px; display: grid; place-items: center; font-size: 34px; border-radius: 46% 54% 42% 58% / 55% 45% 55% 45%;
+    background: radial-gradient(circle at 50% 40%, #b8e986 0 45%, #7cc44f 46% 70%, #f3d98b 71%); box-shadow: 0 6px 0 rgba(0,0,0,.15), 0 0 0 4px rgba(255,255,255,.35); }
+  .isle .lbl { background: rgba(255,255,255,.92); color: #1d2a22; border-radius: 12px; padding: 3px 9px; display: grid; box-shadow: 0 2px 6px rgba(0,0,0,.15); }
+  .isle .lbl b { font-size: 13px; } .isle .lbl small { font-size: 11px; color: #5b6470; }
+  .isle.locked .land { filter: grayscale(1) brightness(.85); }
+  .isle.locked .lbl { opacity: .8; }
+  .isle.here .land { box-shadow: 0 6px 0 rgba(0,0,0,.15), 0 0 0 5px #ffd56b, 0 0 22px #ffd56b; }
+  .isle .pin { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; border: 3px solid #fff; box-shadow: 0 3px 8px rgba(0,0,0,.3); margin-bottom: -6px; z-index: 1; animation: bob 1.4s ease-in-out infinite; display: grid; place-items: center; font-size: 26px; background: #fff; }
+  .isle .pin svg { width: 100%; height: 100%; display: block; }
+  @keyframes bob { 50% { transform: translateY(-6px); } }
   .m-stat { text-align: center; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
 
   .result { text-align: center; display: grid; gap: 14px; justify-items: center; padding-top: 20px; }

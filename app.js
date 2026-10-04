@@ -910,8 +910,10 @@
 
   // ---------- 🧪 SINOV: 🏆 kuboklar va arenalar (faqat ustoz o'quvchi sifatida kirganda ko'rinadi) ----------
   const BETA = () => !!TT;
-  const ARENAS = [[0, "🏜️", "Dubay arenasi"], [200, "🏛️", "Qohira arenasi"], [500, "🌴", "Marrakesh arenasi"],
-    [900, "🏰", "Ammon arenasi"], [1400, "🏙️", "Bag'dod arenasi"], [2000, "👑", "Chempionlar arenasi"]];
+  // Sayohat xaritasi: O'zbekistondan arab dunyosigacha. [kubok, bayroq, davlat, belgisi]
+  const ARENAS = [[0, "🇺🇿", "O'zbekiston", "🏺"], [150, "🇰🇿", "Qozog'iston", "🦅"], [300, "🇹🇲", "Turkmaniston", "🐎"],
+    [500, "🇦🇿", "Ozarbayjon", "🔥"], [750, "🇹🇷", "Turkiya", "🎈"], [1050, "🇯🇴", "Iordaniya", "🏜️"], [1400, "🇪🇬", "Misr", "🐫"],
+    [1800, "🇦🇪", "BAA", "🏙️"], [2300, "🇸🇦", "Saudiya Arabistoni", "🌴"], [2900, "🇲🇦", "Marokash", "🍊"]];
   const TROPHY = { win: 30, lose: -20, draw: 5 };
   const arenaIdx = t => ARENAS.filter(a => t >= a[0]).length - 1;
   let TROPHIES = null;
@@ -920,22 +922,41 @@
     return TROPHIES;
   }
   function arenaCard(t) {
-    const i = arenaIdx(t), [from, ic, name] = ARENAS[i], next = ARENAS[i + 1];
+    const i = arenaIdx(t), [from, flag, name, ic] = ARENAS[i], next = ARENAS[i + 1];
     const pct = next ? Math.round((t - from) * 100 / (next[0] - from)) : 100;
-    return `<button class="arena" id="arena-open"><span class="arena-ic">${ic}</span><span class="t"><small>🧪 Sinov · ${MONTHS[new Date().getMonth()]} mavsumi</small><b>${name}</b>
-      <span class="bar"><i style="width:${pct}%"></i></span><small>${next ? `${next[1]} ${next[2]}gacha: ${next[0] - t} 🏆` : "Eng yuqori arena! 👑"}</small></span>
+    return `<button class="arena" id="arena-open"><span class="arena-ic">${ic}</span><span class="t"><small>🧪 Sinov · ${MONTHS[new Date().getMonth()]} mavsumi · 🗺 xarita</small><b>${flag} ${name}</b>
+      <span class="bar"><i style="width:${pct}%"></i></span><small>${next ? `${next[1]} ${next[2]}gacha: ${next[0] - t} 🏆` : "Butun xarita zabt etildi! 👑"}</small></span>
       <span class="arena-tr">🏆 ${t}</span></button>`;
+  }
+  // Multfilm uslubidagi xarita: dengizdagi orolchalar, pastdan yuqoriga yo'l, o'quvchi avatari hozirgi davlatda
+  const MAP_X = [50, 74, 70, 40, 22, 34, 64, 80, 58, 30];
+  const MAP_DECO = [["☁️", 8, 4], ["⛵", 86, 12], ["🐠", 12, 22], ["☁️", 70, 31], ["🐬", 88, 44], ["⛵", 6, 52], ["☁️", 48, 61], ["🐠", 90, 72], ["🌊", 8, 82], ["☁️", 78, 91]];
+  function worldMap(t) {
+    const n = ARENAS.length, step = 112, h = n * step + 40, cur = arenaIdx(t);
+    const pos = i => ({ x: MAP_X[i % MAP_X.length], y: h - 70 - i * step });   // pastdan yuqoriga
+    const path = ARENAS.slice(1).map((_, i) => { const a = pos(i), b = pos(i + 1); return `<path class="${i < cur ? "done" : ""}" vector-effect="non-scaling-stroke" d="M${a.x} ${a.y} C${a.x} ${(a.y + b.y) / 2} ${b.x} ${(a.y + b.y) / 2} ${b.x} ${b.y}"/>`; }).join("");
+    const mine = avaSvg(S.avatar);
+    return `<div class="wmap" id="wmap" style="height:${h}px">
+      <svg viewBox="0 0 100 ${h}" preserveAspectRatio="none" aria-hidden="true">${path}</svg>
+      ${MAP_DECO.map(([e, x, y]) => `<span class="deco" style="left:${x}%;top:${y}%">${e}</span>`).join("")}
+      ${ARENAS.map(([from, flag, name, ic], i) => { const p = pos(i), st = i < cur ? "done" : i === cur ? "here" : "locked";
+        return `<div class="isle ${st}" style="left:${p.x}%;top:${p.y}px">
+          ${i === cur ? `<span class="pin">${mine || "📍"}</span>` : ""}
+          <span class="land">${ic}</span><span class="lbl"><b>${flag} ${name}</b><small>${st === "locked" ? `🔒 ${from} 🏆` : st === "done" ? "✅ ochilgan" : "📍 siz shu yerdasiz"}</small></span></div>`; }).join("")}
+    </div>`;
   }
   function trophySheet() {
     const b = TROPHIES || { board: [], mine: 0, me: null };
-    sheet(`<h3>🏆 Kuboklar</h3>
-      <p>Duelda yutsangiz <b style="color:var(--ink)">+30 🏆</b>, yutqazsangiz <b style="color:var(--ink)">−20 🏆</b>, durang <b style="color:var(--ink)">+5</b>. Har oy yangi mavsum boshlanadi.</p>
-      <div class="arenas">${ARENAS.map(([from, ic, name], i) => `<div class="ar-step ${b.mine >= from ? "on" : ""} ${arenaIdx(b.mine) === i ? "here" : ""}"><span>${ic}</span><b>${name}</b><small>${from} 🏆</small></div>`).join("")}</div>
+    sheet(`<h3>🗺 Sayohat xaritasi</h3>
+      <p>Duelda yutsangiz <b style="color:var(--ink)">+30 🏆</b>, yutqazsangiz <b style="color:var(--ink)">−20 🏆</b>, durang <b style="color:var(--ink)">+5</b>. Kubok yig'ib, yangi davlatlarni oching! Har oy yangi mavsum.</p>
+      ${worldMap(b.mine)}
       <h3 style="font-size:15px;margin-top:6px">Guruhda kubok reytingi</h3>
       <div class="card">${b.board.length ? b.board.map((r, i) => `<div class="prog-row"><span class="rk">${i + 1}</span>${avaHtml(r.ava, r.name)}
         <span class="nm"><b>${esc(r.name)}${r.id === b.me ? " (siz)" : ""}</b><small>${ARENAS[arenaIdx(r.tr)][1]} ${ARENAS[arenaIdx(r.tr)][2]}</small></span><span class="val">🏆 ${r.tr}</span></div>`).join("")
         : `<p class="muted">Bu mavsumda hali hech kim kubok yutmadi. Birinchi bo'ling! ⚔️</p>`}</div>
       <button class="btn btn-soft btn-block" data-close>Yopish</button>`);
+    // xaritada hozirgi davlatga aylantiramiz
+    setTimeout(() => { const h = $(".isle.here"); if (h) h.scrollIntoView({ block: "center" }); }, 60);
   }
 
   // ---------- 🧪 SINOV: 🎁 sandiqlar ----------
@@ -1138,7 +1159,7 @@
         const t = await loadTrophies();
         if (t && before != null && arenaIdx(t.mine) > arenaIdx(before)) {
           const a = ARENAS[arenaIdx(t.mine)];
-          pill += `<div class="new-badge">🎉 Yangi arena ochildi: ${a[1]} ${a[2]}!</div>`;
+          pill += `<div class="new-badge">🎉 Yangi davlat ochildi: ${a[1]} ${a[2]} ${a[3]}!</div>`;
           sfx("badge");
         }
       }
