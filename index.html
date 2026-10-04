@@ -446,6 +446,24 @@
   .isle .pin { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; border: 3px solid #fff; box-shadow: 0 3px 8px rgba(0,0,0,.3); margin-bottom: -6px; z-index: 1; animation: bob 1.4s ease-in-out infinite; display: grid; place-items: center; font-size: 26px; background: #fff; }
   .isle .pin svg { width: 100%; height: 100%; display: block; }
   @keyframes bob { 50% { transform: translateY(-6px); } }
+  /* 📒 Guruh jurnali */
+  .kassa { background: linear-gradient(150deg, #1f6b4f, #2c8a63); color: #fff; border-radius: var(--r-lg); padding: 14px; box-shadow: var(--shadow); margin-bottom: 12px; display: flex; align-items: center; gap: 12px; }
+  .kassa .ci { font-size: 34px; } .kassa div { display: grid; gap: 2px; } .kassa small { opacity: .9; } .kassa b { font-family: var(--f-display); font-size: 19px; }
+  .jr-rules { font-size: 12px; color: var(--muted); margin: 0 2px 10px; line-height: 1.5; }
+  .jr-row .val { text-align: right; display: grid; gap: 2px; } .jr-row .val small { font-family: var(--f-body, inherit); font-size: 11.5px; font-weight: 700; }
+  .debt { color: var(--bad); } .paid-ok { color: var(--good); }
+  .jr-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: 10px 12px; margin-bottom: 8px; display: grid; gap: 8px; box-shadow: var(--shadow); }
+  .jr-top { display: flex; align-items: center; gap: 10px; } .jr-top .nm { flex: 1; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .jr-top .sc { font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+  .jr-btns { display: flex; gap: 4px; flex-wrap: wrap; }
+  .jr-btns button { flex: 1 1 0; min-width: 0; padding: 7px 4px; border-radius: 10px; background: var(--surface-2); font-size: 12px; font-weight: 700; border: 2px solid transparent; white-space: nowrap; }
+  .jr-btns button[aria-pressed="true"] { border-color: var(--gold); background: var(--gold-soft); }
+  .jr-btns button.good[aria-pressed="true"] { border-color: var(--good); background: var(--good-soft); }
+  .jr-btns button.bad[aria-pressed="true"] { border-color: var(--bad); background: var(--bad-soft); }
+  .jr-cnt { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .jr-cnt div { background: var(--surface-2); border-radius: 10px; padding: 4px; display: flex; align-items: center; justify-content: space-between; gap: 2px; font-size: 12px; font-weight: 700; }
+  .jr-cnt button { width: 30px; height: 30px; border-radius: 8px; background: var(--surface); font-weight: 700; font-size: 16px; flex: none; }
+  .jr-cnt span { text-align: center; flex: 1; min-width: 0; }
   .m-stat { text-align: center; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
 
   .result { text-align: center; display: grid; gap: 14px; justify-items: center; padding-top: 20px; }
@@ -674,6 +692,7 @@
     <div class="seg" role="group" aria-label="Reyting turi">
       <button type="button" data-board="week" aria-pressed="true">📅 Haftalik · guruh</button>
       <button type="button" data-board="month" aria-pressed="false">🌍 Oylik · hamma</button>
+      <button type="button" data-board="journal" aria-pressed="false" hidden>📒 Jurnal</button>
     </div>
     <div class="champ" id="t-champ" hidden></div>
     <div class="card board" id="t-board"><p class="muted">Yuklanmoqda…</p></div>
@@ -798,6 +817,7 @@
       <button type="button" data-tct="progress" aria-pressed="false">📈 Progress</button>
       <button type="button" data-tct="students" aria-pressed="false">👥 Talabalar</button>
       <button type="button" data-tct="attend" aria-pressed="false">📝 Davomat</button>
+      <button type="button" data-tct="journal" aria-pressed="false" hidden>📒 Jurnal</button>
       <button type="button" data-tct="speak" aria-pressed="false">🎤 Ovozlar <span class="badge-count" id="tc-speak-count" hidden></span></button>
       <button type="button" data-tct="settings" aria-pressed="false">⚙️</button>
     </div>
@@ -825,6 +845,8 @@
 
     <div data-tcp="attend" hidden><div id="tc-att"></div></div>
 
+    <div data-tcp="journal" hidden><div id="tc-jr"></div></div>
+
     <div data-tcp="speak" hidden>
       <p class="muted" style="font-size:12.5px;margin:0 2px 10px" id="tc-speak-sum"></p>
       <div class="tc-list" id="tc-speak"></div>
@@ -832,7 +854,7 @@
 
     <div data-tcp="settings" hidden>
       <div class="card tc-controls">
-        <div class="tc-row"><span><b>👥 Guruh kodi</b><small class="muted">Talabalar shu kod bilan qo'shiladi</small></span><b style="font-family:var(--f-display)">DOD_ARABIC</b></div>
+        <div class="tc-row"><span><b>👥 Guruh kodi</b><small class="muted">Talabalar shu kod bilan qo'shiladi</small></span><b style="font-family:var(--f-display)" id="tc-code">DOD_ARABIC</b></div>
         <button class="btn btn-soft btn-block" data-pass>🔑 Ustoz parolini o'zgartirish</button>
         <button class="btn btn-soft btn-block" id="tc-as-student">🎓 O'quvchi sifatida ko'rish</button>
         <button class="btn btn-danger btn-block" id="tc-logout">🚪 Ustoz rejimidan chiqish</button>

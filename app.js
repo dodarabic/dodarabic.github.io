@@ -1677,6 +1677,8 @@
   const MONTHS = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avgust", "sentabr", "oktabr", "noyabr", "dekabr"];
   async function renderBoard() {
     $$("[data-board]").forEach(b => b.setAttribute("aria-pressed", b.dataset.board === boardMode));
+    $('[data-board="journal"]').hidden = !(ME.group && ME.group.journal);
+    if (boardMode === "journal") return renderJournalBoard();
     $("#t-note").textContent = boardMode === "week" ? "Guruhingiz ichida · dushanba noldan boshlanadi" : "Barcha guruhlar · har oy 1-sanada noldan";
     const medal = ["🥇", "🥈", "🥉"];
     if (boardMode === "month") {
@@ -1895,6 +1897,93 @@
     ].join("");
   }
 
+  // ---------- 📒 Guruh jurnali (faqat «jurnal» guruhlarida, masalan DOD_PRO) ----------
+  // Ball: vaqtida +50, faol +100, sherigi topolmagan savol +10, uy vazifasi 100% +200.
+  // Jarima: sababsiz 5000, sababli 1000, kechikdi 2000, so'z 500 (darsda ≤3000), uy vazifasi yo'q 1000.
+  const fmtSom = n => `${String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm`;
+  const JR_ATT = { ontime: ["✅", "Vaqtida", "good"], late: ["⏰", "Kechikdi", "bad"], absent: ["❌", "Sababsiz", "bad"], excused: ["🟡", "Sababli", ""] };
+  const JR_RULES = `⭐ Ball: vaqtida keldi +50 · faol +100 · sherigi topolmagan savol +10 · uy vazifasi 100% +200<br>💸 Jarima: sababsiz 5 000 · sababli 1 000 · kechikdi 2 000 · yodlamagan so'z 500 (darsda ko'pi bilan 3 000) · uy vazifasi bajarilmadi 1 000`;
+  let jrDay = null, jrView = "day";
+
+  // Jadval (ustoz ham, o'quvchilar ham ko'radi)
+  function journalTable(b, teacher) {
+    const mon = MONTHS[+b.month_start.slice(5, 7) - 1];
+    return `<div class="kassa"><span class="ci">💰</span><div><small>Guruh kassasi · ${mon}</small><b>${fmtSom(b.kassa_month)}</b>
+        <small>Oy oxirida o'quvchilarning o'ziga sovg'a 🎁 · jami: ${fmtSom(b.kassa_total)}</small></div></div>
+      <p class="jr-rules">${JR_RULES}</p>
+      <div class="card">${b.students.length ? b.students.map((s, i) => `<${teacher ? `button class="prog-row jr-row" data-pay="${s.id}" style="width:100%;text-align:left"` : `div class="prog-row jr-row"`}>
+        <span class="rk">${["🥇", "🥈", "🥉"][i] || i + 1}</span>${avaHtml(s.ava, s.name)}
+        <span class="nm"><b>${esc(s.name)}${b.me === s.id ? " (siz)" : ""}</b><small>✅${s.att.ontime} ⏰${s.att.late} ❌${s.att.absent} 🟡${s.att.excused} · ⭐${s.active} faol · 📝${s.hw_full}/${s.hw_full + s.hw_none}</small></span>
+        <span class="val">${s.pts_m} ball<small class="${s.debt > 0 ? "debt" : "paid-ok"}">${s.debt > 0 ? `qarz ${fmtSom(s.debt)}` : s.fine_all ? "✅ to'langan" : "jarimasiz 👏"}</small></span>
+      </${teacher ? "button" : "div"}>`).join("") : `<p class="muted">Guruhda hali o'quvchi yo'q.</p>`}</div>`;
+  }
+
+  async function teacherJournalLoad() {
+    const box = $("#tc-jr");
+    const tabs = `<div class="seg" style="margin:0 0 10px"><button type="button" data-jv="day" aria-pressed="${jrView === "day"}">✏️ Kunlik belgilash</button><button type="button" data-jv="table" aria-pressed="${jrView === "table"}">📊 Jadval va kassa</button></div>`;
+    try {
+      if (jrView === "table") {
+        const b = await rpc("teacher_journal_board", { p_token: TT });
+        box.innerHTML = tabs + `<p class="muted" style="font-size:12.5px;margin:0 2px 8px">Jarima to'lovini yozish uchun o'quvchini bosing.</p>` + journalTable(b, true);
+        $$("[data-pay]").forEach(el => (el.onclick = () => paySheet(b.students.find(s => s.id === el.dataset.pay))));
+      } else {
+        const r = await rpc("teacher_journal_day", { p_token: TT, p_day: jrDay || (TC && TC.today) || today() });
+        jrDay = r.day;
+        box.innerHTML = tabs + `
+          <div class="card" style="margin-bottom:10px"><div class="att-head" style="margin:0"><button class="btn btn-soft" data-jd="-1" aria-label="Oldingi kun">◀</button>
+            <b>${jrDay === r.today ? "Bugun, " : ""}${dayName(jrDay)}</b><button class="btn btn-soft" data-jd="1" ${jrDay >= r.today ? "disabled" : ""} aria-label="Keyingi kun">▶</button></div></div>
+          ${r.students.length ? r.students.map(s => `<div class="jr-card" data-sid="${s.id}">
+            <div class="jr-top">${avaHtml(s.ava, s.name)}<span class="nm">${esc(s.name)}</span><span class="sc">⭐ ${s.pts}${s.fine ? ` · <span class="debt">💸 ${fmtSom(s.fine)}</span>` : ""}</span></div>
+            <div class="jr-btns">${Object.entries(JR_ATT).map(([k, [ic, n, cls]]) => `<button class="${cls}" data-f="att" data-v="${k}" aria-pressed="${s.att === k}">${ic} ${n}</button>`).join("")}</div>
+            <div class="jr-cnt">${[["active", "⭐ Faol"], ["assist", "💡 Yordam"], ["words", "📚 So'z"]].map(([f, n]) => `<div><button data-f="${f}" data-d="-1" aria-label="Kamaytirish">−</button><span>${n} ${s[f]}</span><button data-f="${f}" data-d="1" aria-label="Qo'shish">+</button></div>`).join("")}</div>
+            <div class="jr-btns"><button class="good" data-f="hw" data-v="full" aria-pressed="${s.hw === "full"}">📝 Uy vazifasi 100%</button><button class="bad" data-f="hw" data-v="none" aria-pressed="${s.hw === "none"}">✖️ Bajarmadi</button></div>
+          </div>`).join("") : `<div class="card"><p class="muted">Guruhda hali o'quvchi yo'q. Ularga DOD_PRO kodini bering.</p></div>`}`;
+        $$("[data-jd]").forEach(b => (b.onclick = () => { jrDay = addDays(jrDay, +b.dataset.jd); teacherJournalLoad(); }));
+        $$(".jr-card button[data-f]").forEach(b => (b.onclick = async () => {
+          const card = b.closest(".jr-card"), s = r.students.find(x => x.id === card.dataset.sid), f = b.dataset.f;
+          const v = b.dataset.d ? String(Math.max(0, s[f] + +b.dataset.d)) : (s[f] === b.dataset.v ? "" : b.dataset.v);   // qayta bossa — olib tashlanadi
+          b.disabled = true;
+          try { await rpc("teacher_journal_set", { p_token: TT, p_day: jrDay, p_student: s.id, p_field: f, p_value: v }); sfx("tap"); }
+          catch (e) { toast(e.message === "BAD_DAY" ? "Faqat oxirgi 60 kunni belgilash mumkin" : errText(e)); }
+          teacherJournalLoad();
+        }));
+      }
+    } catch (e) { box.innerHTML = tabs + `<div class="card"><p>${esc(errText(e))}</p></div>`; }
+    $$("[data-jv]").forEach(b => (b.onclick = () => { jrView = b.dataset.jv; teacherJournalLoad(); }));
+  }
+
+  function paySheet(s) {
+    sheet(`<h3>💸 ${esc(s.name)}: jarima to'lovi</h3>
+      <p>Jami jarima: <b style="color:var(--ink)">${fmtSom(s.fine_all)}</b> · to'langan: <b style="color:var(--ink)">${fmtSom(s.paid)}</b><br>
+        ${s.debt > 0 ? `Qarz: <b class="debt">${fmtSom(s.debt)}</b>` : "Qarzi yo'q ✅"}</p>
+      <input class="input" id="pay-sum" inputmode="numeric" placeholder="Summa (so'm)" value="${s.debt > 0 ? s.debt : ""}">
+      <button class="btn btn-brand btn-block" id="pay-ok">✅ To'landi deb yozish</button>
+      <button class="btn btn-soft btn-block" id="pay-undo">↩️ Xato yozilgan to'lovni ayirish</button>
+      <button class="btn btn-soft btn-block" data-close>Yopish</button>`);
+    const go = async sign => {
+      const n = parseInt(($("#pay-sum").value || "").replace(/\D/g, ""), 10);
+      if (!n) return toast("Summani yozing");
+      try { await rpc("teacher_payment", { p_token: TT, p_student: s.id, p_amount: sign * n }); toast(sign > 0 ? `💰 ${fmtSom(n)} kassaga qo'shildi` : `↩️ ${fmtSom(n)} ayirildi`); }
+      catch (e) { toast(errText(e)); return; }
+      closeSheet(); teacherJournalLoad();
+    };
+    $("#pay-ok").onclick = () => go(1);
+    $("#pay-undo").onclick = () => go(-1);
+  }
+
+  // O'quvchi: Reyting → «📒 Jurnal»
+  async function renderJournalBoard() {
+    $("#t-champ").hidden = true;
+    $("#t-note").textContent = "Guruh jurnali · darsdagi ball va jarimalar";
+    try {
+      const b = await rpc("journal_board", { p_token: TOKEN });
+      if (boardMode !== "journal") return;
+      const mine = b.mine.length ? `<h3 style="font-size:15px;margin:14px 2px 8px">🗒 Mening yozuvlarim</h3><div class="card">${b.mine.map(x => `<div class="att-row"><span class="name">${x.att ? JR_ATT[x.att][0] : "▫️"} ${dayName(x.day)}</span>
+          <small>${[x.active ? `⭐${x.active}` : "", x.assist ? `💡${x.assist}` : "", x.hw === "full" ? "📝✓" : x.hw === "none" ? "📝✖" : "", x.words ? `📚${x.words}` : ""].filter(Boolean).join(" ")} · +${x.pts}${x.fine ? ` · <span class="debt">−${fmtSom(x.fine)}</span>` : ""}</small></div>`).join("")}</div>` : "";
+      $("#t-board").innerHTML = journalTable(b, false) + mine;
+    } catch (e) { $("#t-board").innerHTML = `<p class="muted">${esc(errText(e))}</p>`; }
+  }
+
   // ---------- Ustoz paneli ----------
   let TT = null, TC = null;
 
@@ -1927,6 +2016,8 @@
     }
     const g = TC.group, t = TC.today;
     $("#tc-group").textContent = g.name;
+    $("#tc-code").textContent = g.code || "DOD_ARABIC";
+    $('[data-tct="journal"]').hidden = !g.journal;
     renderTcLevels(g);
     $("#tc-exam-state").textContent = g.exam_open ? "ochiq ✅" : "yopiq 🔒";
     $("#tc-exam").textContent = g.exam_open ? "Yopish" : "Ochish";
@@ -1959,7 +2050,7 @@
             ${s.exam_best ? `<span>🎓 ${s.exam_best}%</span>` : ""}<span>❌ ${s.mistakes}</span><span>⚔️ ${s.duel_wins}/${s.duels}</span>${skills ? `<span>${esc(skills)}</span>` : ""}</div>
           <div class="st-actions"><button class="btn btn-soft" data-pin="${s.id}" data-name="${esc(s.name)}">🔑 PIN yangilash</button>
             <button class="btn btn-danger" data-del="${s.id}" data-name="${esc(s.name)}">O'chirish</button></div></div></div>`;
-    }).join("") : `<div class="card"><p>Hali talabalar yo'q. Ularga ilova havolasi va <b>DOD_ARABIC</b> kodini bering.</p></div>`;
+    }).join("") : `<div class="card"><p>Hali talabalar yo'q. Ularga ilova havolasi va <b>${esc(TC.group.code || "DOD_ARABIC")}</b> kodini bering.</p></div>`;
     $("#tc-hard").innerHTML = TC.hardest.length ? TC.hardest.map(h => `<div class="hard"><span class="${isAr(h.topic) ? "ar" : ""}">${esc(h.topic)}</span><b>${h.wrong}/${h.total} xato</b></div>`).join("")
       : `<p class="muted" style="margin:0">Hozircha ma'lumot yetarli emas.</p>`;
     $("#tc-duels").innerHTML = TC.duels.length ? TC.duels.map(d => `<div class="hard"><span>${esc(d.a)} ⚔️ ${esc(d.b)}</span><b>${d.status === "done" ? `${d.a_score}:${d.b_score} · ${d.winner ? "🏆 " + esc(d.winner) : "🤝"}` : d.status === "declined" ? "rad etildi" : "kutilmoqda"}</b></div>`).join("")
@@ -2131,12 +2222,13 @@
     $(".tabbar").hidden = true;
     $("#tc-exam").onclick = () => teacherSet(null, !TC.group.exam_open);
     $("#tc-report").onclick = () => teacherReport(0);
-    $("#tc-refresh").onclick = () => { teacherLoad(); teacherSpeakLoad(); if (!$('[data-tcp="attend"]').hidden) teacherAttLoad(); if (!$('[data-tcp="progress"]').hidden) teacherProgLoad(); };
+    $("#tc-refresh").onclick = () => { teacherLoad(); teacherSpeakLoad(); if (!$('[data-tcp="attend"]').hidden) teacherAttLoad(); if (!$('[data-tcp="progress"]').hidden) teacherProgLoad(); if (!$('[data-tcp="journal"]').hidden) teacherJournalLoad(); };
     $$("[data-tct]").forEach(b => (b.onclick = () => {
       $$("[data-tct]").forEach(x => x.setAttribute("aria-pressed", x === b));
       $$("[data-tcp]").forEach(p => (p.hidden = p.dataset.tcp !== b.dataset.tct));
       if (b.dataset.tct === "attend") teacherAttLoad();
       if (b.dataset.tct === "progress") teacherProgLoad();
+      if (b.dataset.tct === "journal") teacherJournalLoad();
       window.scrollTo({ top: 0 });
     }));
     $$("[data-pass]").forEach(b => (b.onclick = passSheet));
