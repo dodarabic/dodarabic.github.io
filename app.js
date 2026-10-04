@@ -909,7 +909,8 @@
   }
 
   // ---------- 🧪 SINOV: 🏆 kuboklar va arenalar (faqat ustoz o'quvchi sifatida kirganda ko'rinadi) ----------
-  const BETA = () => !!TT;
+  const BETA = () => !!TT;          // sandiq va kartalar: hali sinovda (faqat ustoz ko'radi)
+  const TROPHY_ON = () => true;     // kubok va xarita: 2026-10-04 dan hammaga ochiq (ustoz qarori)
   // Sayohat xaritasi: O'zbekistondan arab dunyosigacha. [kubok, bayroq, davlat, belgisi]
   const ARENAS = [[0, "🇺🇿", "O'zbekiston", "🏺"], [150, "🇰🇿", "Qozog'iston", "🦅"], [300, "🇹🇲", "Turkmaniston", "🐎"],
     [500, "🇦🇿", "Ozarbayjon", "🔥"], [750, "🇹🇷", "Turkiya", "🎈"], [1050, "🇯🇴", "Iordaniya", "🏜️"], [1400, "🇪🇬", "Misr", "🐫"],
@@ -924,7 +925,7 @@
   function arenaCard(t) {
     const i = arenaIdx(t), [from, flag, name, ic] = ARENAS[i], next = ARENAS[i + 1];
     const pct = next ? Math.round((t - from) * 100 / (next[0] - from)) : 100;
-    return `<button class="arena" id="arena-open"><span class="arena-ic">${ic}</span><span class="t"><small>🧪 Sinov · ${MONTHS[new Date().getMonth()]} mavsumi · 🗺 xarita</small><b>${flag} ${name}</b>
+    return `<button class="arena" id="arena-open"><span class="arena-ic">${ic}</span><span class="t"><small>${cap(MONTHS[new Date().getMonth()])} mavsumi · 🗺 xaritani ochish uchun bosing</small><b>${flag} ${name}</b>
       <span class="bar"><i style="width:${pct}%"></i></span><small>${next ? `${next[1]} ${next[2]}gacha: ${next[0] - t} 🏆` : "Butun xarita zabt etildi! 👑"}</small></span>
       <span class="arena-tr">🏆 ${t}</span></button>`;
   }
@@ -1092,7 +1093,7 @@
         <span class="t"><b>${esc(d.vs)}</b><small>${d.my} : ${d.their}</small></span>
         <span class="tag ${d.outcome}">${{ win: "🏆 G'alaba", lose: "Mag'lubiyat", draw: "🤝 Durang" }[d.outcome]}</span></div>`).join("");
     sheet(`<h3>⚔️ Duel</h3>
-      ${BETA() ? `<div id="duel-arena">${TROPHIES ? arenaCard(TROPHIES.mine) : ""}</div>` : ""}
+      ${TROPHY_ON() ? `<div id="duel-arena">${TROPHIES ? arenaCard(TROPHIES.mine) : ""}</div>` : ""}
       <p>${DUEL_QUESTIONS} ta savol, har biriga ${TIMER} soniya. Ikkalangizga bir xil savollar. Ko'p topgan yutadi, teng bo'lsa tezrog'i. G'olibga +30 XP.</p>
       <button class="btn btn-brand btn-block" id="duel-new">➕ Yangi duel: raqib tanlash</button>
       ${inc ? `<h3 style="font-size:15px;margin-top:6px">📨 Sizga takliflar</h3><div>${inc}</div>` : ""}
@@ -1100,7 +1101,7 @@
       ${res ? `<h3 style="font-size:15px;margin-top:6px">📜 So'nggi natijalar</h3><div>${res}</div>` : ""}
       <button class="btn btn-soft btn-block" data-close>Yopish</button>`);
     $("#duel-new").onclick = pickOpponent;
-    if (BETA()) {
+    if (TROPHY_ON()) {
       const bindArena = () => { const a = $("#arena-open"); if (a) a.onclick = trophySheet; };
       bindArena();
       loadTrophies().then(t => { const box = $("#duel-arena"); if (t && box) { box.innerHTML = arenaCard(t.mine); bindArena(); } });
@@ -1153,7 +1154,7 @@
     if (res.status === "done") {
       head = { win: "🎉 Siz yutdingiz!", lose: "😤 Bu safar yutqazdingiz. Revansh?", draw: "🤝 Durang! Kuchlar teng." }[res.outcome];
       pill = `<span class="pill green">⭐ +${{ win: 30, draw: 15, lose: 5 }[res.outcome]} XP</span>`;
-      if (BETA()) {
+      if (TROPHY_ON()) {
         const before = TROPHIES ? TROPHIES.mine : null, d = TROPHY[res.outcome];
         pill += `<span class="pill gold">🏆 ${d > 0 ? "+" : ""}${d}</span>` + chestPill(chest);
         const t = await loadTrophies();
@@ -1772,7 +1773,7 @@
     loadInbox();
     loadMyAttendance();
     loadMyProgress();
-    if (BETA()) loadTrophies();
+    if (TROPHY_ON()) loadTrophies();
     loadSpeakBadge();
     // Taklif havolasi orqali kelgan bo'lsa — taklif qilganni bog'laymiz (faqat yangi hisob uchun ishlaydi)
     const ref = store.get(K_REF);
