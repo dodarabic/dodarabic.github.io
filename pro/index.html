@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0C1218">
+<title>Dod Pro · Jurnal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;600;700&family=Unbounded:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  /* Dod Pro — DOD_PRO guruhi uchun alohida sahifa: davomat, ball, jarima va kassa. Dod Arabic ilovasiga bog'liq emas. */
+  :root {
+    --bg: #0C1218; --surface: #141C25; --surface-2: #1C2631; --ink: #F2EDE1; --muted: #98A2AC; --line: #243040;
+    --brand: #D6A94E; --brand-ink: #17120A; --gold: #E2B75C; --gold-soft: #2D2616;
+    --good: #3DBA8E; --good-soft: #10302A; --bad: #E7766C; --bad-soft: #3A1C1A;
+    --r: 18px; --shadow: 0 6px 18px rgba(0,0,0,.25);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 Onest, system-ui, sans-serif; }
+  button, input { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  .wrap { max-width: 520px; margin: 0 auto; padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 40px; display: grid; gap: 12px; }
+  h1, h2, h3 { font-family: Unbounded, sans-serif; margin: 0; }
+  .top { display: flex; align-items: center; gap: 12px; }
+  .logo { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: linear-gradient(160deg, #1D2733, #111820); border: 1px solid #5E4C25; color: var(--gold); font-weight: 700; font-family: Unbounded; }
+  .top .t { flex: 1; display: grid; } .top small { color: var(--muted); } .top b { font-family: Unbounded; font-size: 17px; }
+  .btn { padding: 12px 16px; border-radius: 14px; font-weight: 700; text-align: center; }
+  .btn-brand { background: var(--brand); color: var(--brand-ink); } .btn-soft { background: var(--surface-2); }
+  .btn-block { width: 100%; display: block; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; box-shadow: var(--shadow); }
+  .muted { color: var(--muted); }
+  .input { width: 100%; padding: 13px 14px; border-radius: 14px; border: 2px solid var(--line); background: var(--surface-2); }
+  .input:focus { border-color: var(--brand); outline: none; }
+  .seg { display: flex; gap: 6px; } .seg button { flex: 1; padding: 9px 10px; border-radius: 999px; background: var(--surface); font-weight: 600; font-size: 13.5px; box-shadow: var(--shadow); }
+  .seg button[aria-pressed="true"] { background: var(--brand); color: var(--brand-ink); }
+  .err { background: var(--bad-soft); color: var(--bad); padding: 10px 12px; border-radius: 12px; font-weight: 600; }
+  .kassa { background: linear-gradient(150deg, #1f6b4f, #2c8a63); color: #fff; border-radius: var(--r); padding: 14px; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow); }
+  .kassa .ci { font-size: 34px; } .kassa div { display: grid; gap: 2px; } .kassa small { opacity: .9; } .kassa b { font-family: Unbounded; font-size: 19px; }
+  .rules { font-size: 12.5px; color: var(--muted); line-height: 1.55; }
+  .row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); width: 100%; text-align: left; }
+  .row:last-child { border-bottom: 0; }
+  .rk { width: 26px; text-align: center; font-weight: 700; color: var(--muted); flex: none; }
+  .ava { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; background: var(--gold-soft); color: var(--gold); flex: none; }
+  .nm { flex: 1; min-width: 0; display: grid; gap: 2px; } .nm b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .nm small { color: var(--muted); font-size: 12px; }
+  .val { text-align: right; display: grid; gap: 2px; font-family: Unbounded; font-weight: 700; font-size: 15px; white-space: nowrap; }
+  .val small { font-family: Onest; font-size: 11.5px; }
+  .debt { color: var(--bad); } .ok { color: var(--good); }
+  .me { background: var(--gold-soft); border-radius: 12px; padding-inline: 8px; }
+  .head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .head b { font-family: Unbounded; font-size: 16px; text-align: center; flex: 1; } .head .btn { padding: 8px 14px; }
+  .jr { display: grid; gap: 8px; }
+  .jr-top { display: flex; align-items: center; gap: 10px; } .jr-top .nm { font-weight: 700; } .jr-top .sc { font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+  .btns { display: flex; gap: 4px; } .btns button { flex: 1 1 0; min-width: 0; padding: 8px 4px; border-radius: 10px; background: var(--surface-2); font-size: 12px; font-weight: 700; border: 2px solid transparent; white-space: nowrap; }
+  .btns button[aria-pressed="true"] { border-color: var(--gold); background: var(--gold-soft); }
+  .btns button.good[aria-pressed="true"] { border-color: var(--good); background: var(--good-soft); }
+  .btns button.bad[aria-pressed="true"] { border-color: var(--bad); background: var(--bad-soft); }
+  .cnt { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .cnt div { background: var(--surface-2); border-radius: 10px; padding: 4px; display: flex; align-items: center; gap: 2px; font-size: 12px; font-weight: 700; }
+  .cnt button { width: 30px; height: 30px; border-radius: 8px; background: var(--surface); font-size: 16px; font-weight: 700; flex: none; } .cnt span { flex: 1; text-align: center; }
+  .sheet-wrap { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: grid; align-items: end; z-index: 20; }
+  .sheet { background: var(--surface); border-radius: 22px 22px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 10px; max-width: 520px; width: 100%; margin: 0 auto; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #F2EDE1; color: #17120A; padding: 10px 16px; border-radius: 12px; font-weight: 700; z-index: 30; box-shadow: var(--shadow); max-width: 90vw; text-align: center; }
+  .link { color: var(--gold); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; padding: 6px; justify-self: center; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><p class="muted">Yuklanmoqda…</p></div>
+<div id="sheet-root"></div>
+<div class="toast" id="toast" hidden></div>
+<script>
+(() => {
+  "use strict";
+  const API = "https://fstmvfroylwyelmaxhzh.supabase.co/rest/v1/rpc/";
+  const API_KEY = "sb_publishable_dNWgUrggq3AEbr4Ifu74Cg_8iq3K1Nm";   // ochiq kalit — sahifada turishi xavfsiz
+  const CODE = "DOD_PRO";
+  const K_TOKEN = "pro_token", K_TEACHER = "pro_teacher";   // asosiy Dod ilovasi kalitlaridan alohida
+  const ERR = {
+    BAD_NAME: "Ismingizni to'liq yozing (2–30 harf).", BAD_PIN: "PIN 4 ta raqamdan iborat bo'lishi kerak.",
+    NAME_TAKEN: "Bu ism guruhda band. «Kirish» bo'limidan kiring yoki familiyangizni qo'shing.",
+    BAD_LOGIN: "Ism yoki PIN noto'g'ri. Unutgan bo'lsangiz, ustoz yangilab beradi.", LOCKED: "Ko'p marta xato kiritildi. Birozdan keyin urinib ko'ring.",
+    BAD_TEACHER_LOGIN: "Ustoz paroli noto'g'ri.", NO_PASSWORD: "Ustoz paroli hali o'rnatilmagan.", NET: "Internet bilan aloqa yo'q.",
+    AUTH: "Qayta kiring.", TEACHER_AUTH: "Ustoz seansi tugagan. Qayta kiring.", BAD_DAY: "Faqat oxirgi 60 kunni belgilash mumkin.", BAD_AMOUNT: "Summani to'g'ri yozing.",
+  };
+  const RULES = `⭐ <b>Ball:</b> vaqtida keldi +50 · faol +100 · sherigi topolmagan savolga javob +10 · uy vazifasi 100% +200<br>
+    💸 <b>Jarima:</b> sababsiz kelmadi 5 000 · sababli 1 000 · kechikdi 2 000 · yodlamagan so'z 500 (darsda ko'pi bilan 3 000) · uy vazifasi bajarilmadi 1 000<br>
+    💰 To'langan jarimalar — guruh kassasi, oy oxirida o'zingizga sovg'a (kitob va hokazo).`;
+  const ATT = { ontime: ["✅", "Vaqtida", "good"], late: ["⏰", "Kechikdi", "bad"], absent: ["❌", "Sababsiz", "bad"], excused: ["🟡", "Sababli", ""] };
+  const MONTHS = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avgust", "sentabr", "oktabr", "noyabr", "dekabr"];
+
+  const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+  const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} }, del: k => { try { localStorage.removeItem(k); } catch {} } };
+  const som = n => `${String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm`;
+  const dayName = d => `${+d.slice(8)}-${MONTHS[+d.slice(5, 7) - 1]}`;
+  const addDays = (d, n) => { const x = new Date(d + "T00:00:00Z"); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+  function toast(m) { const t = $("#toast"); t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), 3000); }
+  async function rpc(fn, args) {
+    let res;
+    try { res = await fetch(API + fn, { method: "POST", headers: { apikey: API_KEY, "Content-Type": "application/json" }, body: JSON.stringify(args || {}) }); }
+    catch { throw new Error("NET"); }
+    const text = await res.text(), body = text ? JSON.parse(text) : null;
+    if (!res.ok) throw new Error((body && body.message) || "NET");
+    if (body && body.error) throw new Error(body.error);
+    return body;
+  }
+  const errText = e => ERR[e.message] || "Xatolik yuz berdi. Qayta urinib ko'ring.";
+  function sheet(html) {
+    $("#sheet-root").innerHTML = `<div class="sheet-wrap" id="sw"><div class="sheet">${html}</div></div>`;
+    $("#sw").addEventListener("click", e => { if (e.target.id === "sw" || e.target.closest("[data-close]")) $("#sheet-root").innerHTML = ""; });
+  }
+  const closeSheet = () => ($("#sheet-root").innerHTML = "");
+
+  let TOKEN = store.get(K_TOKEN), TT = store.get(K_TEACHER), ME = null;
+  const m = location.hash.match(/ustoz=([0-9a-f]{40})/);   // ustoz havolasi
+  if (m) { TT = m[1]; store.set(K_TEACHER, TT); history.replaceState(null, "", location.pathname); }
+
+  const header = (sub, name) => `<div class="top"><div class="logo">D</div><div class="t"><small>${sub}</small><b>${esc(name)}</b></div>
+    <button class="btn btn-soft" id="refresh" aria-label="Yangilash">🔄</button></div>`;
+
+  // Guruh jadvali (o'quvchilar ham, ustoz ham ko'radi)
+  function table(b, teacher) {
+    const mon = MONTHS[+b.month_start.slice(5, 7) - 1];
+    return `<div class="kassa"><span class="ci">💰</span><div><small>Guruh kassasi · ${mon}</small><b>${som(b.kassa_month)}</b><small>Jami yig'ilgan: ${som(b.kassa_total)}</small></div></div>
+      <div class="card"><h3 style="font-size:15px;margin-bottom:4px">🏆 ${mon[0].toUpperCase() + mon.slice(1)} reytingi</h3>
+      ${b.students.length ? b.students.map((s, i) => `<${teacher ? `button data-pay="${s.id}"` : "div"} class="row ${b.me === s.id ? "me" : ""}">
+        <span class="rk">${["🥇", "🥈", "🥉"][i] || i + 1}</span><span class="ava">${esc(s.name[0].toUpperCase())}</span>
+        <span class="nm"><b>${esc(s.name)}${b.me === s.id ? " (siz)" : ""}</b><small>✅${s.att.ontime} ⏰${s.att.late} ❌${s.att.absent} 🟡${s.att.excused} · ⭐${s.active} faol · 📝${s.hw_full}/${s.hw_full + s.hw_none}</small></span>
+        <span class="val">${s.pts_m} ball<small class="${s.debt > 0 ? "debt" : "ok"}">${s.debt > 0 ? `qarz ${som(s.debt)}` : s.fine_all ? "✅ to'langan" : "jarimasiz 👏"}</small></span></${teacher ? "button" : "div"}>`).join("")
+        : `<p class="muted">Hali o'quvchilar yo'q.</p>`}</div>
+      <div class="card rules">${RULES}</div>`;
+  }
+
+  // ---------- O'quvchi ----------
+  async function student() {
+    try { ME = await rpc("me", { p_token: TOKEN }); } catch (e) { if (e.message === "AUTH") { store.del(K_TOKEN); TOKEN = null; return auth(); } return fail(e); }
+    if (!ME.group.journal) { store.del(K_TOKEN); TOKEN = null; return auth("Bu hisob Dod Pro guruhiga tegishli emas."); }
+    let b;
+    try { b = await rpc("journal_board", { p_token: TOKEN }); } catch (e) { return fail(e); }
+    $("#app").innerHTML = header("Dod Pro · jurnal", ME.name) + table(b, false)
+      + (b.mine.length ? `<div class="card"><h3 style="font-size:15px;margin-bottom:4px">🗒 Mening yozuvlarim</h3>${b.mine.map(x => `<div class="row"><span class="nm"><b>${x.att ? ATT[x.att][0] : "▫️"} ${dayName(x.day)}</b>
+          <small>${[x.att ? ATT[x.att][1] : "", x.active ? `⭐ faol ×${x.active}` : "", x.assist ? `💡 ×${x.assist}` : "", x.hw === "full" ? "📝 100%" : x.hw === "none" ? "📝 bajarilmagan" : "", x.words ? `📚 ${x.words} so'z` : ""].filter(Boolean).join(" · ")}</small></span>
+          <span class="val">+${x.pts}<small class="${x.fine ? "debt" : "ok"}">${x.fine ? `−${som(x.fine)}` : "—"}</small></span></div>`).join("")}</div>` : "")
+      + `<button class="link" id="logout">🚪 Chiqish</button>`;
+    $("#refresh").onclick = student;
+    $("#logout").onclick = () => { store.del(K_TOKEN); TOKEN = null; auth(); };
+  }
+
+  // ---------- Ustoz ----------
+  let view = "day", day = null;
+  async function teacher() {
+    const tabs = `<div class="seg"><button data-v="day" aria-pressed="${view === "day"}">✏️ Kunlik belgilash</button><button data-v="table" aria-pressed="${view === "table"}">📊 Jadval va kassa</button></div>`;
+    let body = "";
+    try {
+      if (view === "table") {
+        const b = await rpc("teacher_journal_board", { p_token: TT });
+        body = `<p class="muted" style="font-size:12.5px;margin:0">To'lov yozish yoki PIN yangilash uchun o'quvchini bosing.</p>` + table(b, true);
+        $("#app").innerHTML = header("Dod Pro · ustoz", "Jurnal") + tabs + body + `<button class="link" id="logout">🚪 Ustoz rejimidan chiqish</button>`;
+        $$("[data-pay]").forEach(el => (el.onclick = () => paySheet(b.students.find(s => s.id === el.dataset.pay))));
+      } else {
+        const r = await rpc("teacher_journal_day", { p_token: TT, p_day: day });
+        if (!r.day) { day = r.today; return teacher(); }   // birinchi ochilishda — bugungi kun
+        body = `<div class="card"><div class="head"><button class="btn btn-soft" data-d="-1" aria-label="Oldingi kun">◀</button><b>${day === r.today ? "Bugun, " : ""}${dayName(day)}</b>
+            <button class="btn btn-soft" data-d="1" ${day >= r.today ? "disabled" : ""} aria-label="Keyingi kun">▶</button></div></div>`
+          + (r.students.length ? r.students.map(s => `<div class="card jr" data-sid="${s.id}">
+            <div class="jr-top"><span class="ava">${esc(s.name[0].toUpperCase())}</span><span class="nm">${esc(s.name)}</span><span class="sc">⭐ ${s.pts}${s.fine ? ` · <span class="debt">💸 ${som(s.fine)}</span>` : ""}</span></div>
+            <div class="btns">${Object.entries(ATT).map(([k, [ic, n, c]]) => `<button class="${c}" data-f="att" data-val="${k}" aria-pressed="${s.att === k}">${ic} ${n}</button>`).join("")}</div>
+            <div class="cnt">${[["active", "⭐ Faol"], ["assist", "💡 Yordam"], ["words", "📚 So'z"]].map(([f, n]) => `<div><button data-f="${f}" data-step="-1" aria-label="Kamaytirish">−</button><span>${n} ${s[f]}</span><button data-f="${f}" data-step="1" aria-label="Qo'shish">+</button></div>`).join("")}</div>
+            <div class="btns"><button class="good" data-f="hw" data-val="full" aria-pressed="${s.hw === "full"}">📝 Uy vazifasi 100%</button><button class="bad" data-f="hw" data-val="none" aria-pressed="${s.hw === "none"}">✖️ Bajarmadi</button></div>
+          </div>`).join("") : `<div class="card"><p class="muted" style="margin:0">Hali o'quvchilar yo'q. Ularga shu sahifa havolasini yuboring — ism va PIN bilan ro'yxatdan o'tishadi.</p></div>`);
+        $("#app").innerHTML = header("Dod Pro · ustoz", "Jurnal") + tabs + `<p class="muted" style="font-size:12.5px;margin:0">Xato bosilsa, o'sha tugmani qayta bosing — belgi olib tashlanadi.</p>` + body
+          + `<button class="link" id="logout">🚪 Ustoz rejimidan chiqish</button>`;
+        $$("[data-d]").forEach(b => (b.onclick = () => { day = addDays(day, +b.dataset.d); teacher(); }));
+        $$(".jr button[data-f]").forEach(b => (b.onclick = async () => {
+          const s = r.students.find(x => x.id === b.closest(".jr").dataset.sid), f = b.dataset.f;
+          const v = b.dataset.step ? String(Math.max(0, s[f] + +b.dataset.step)) : (s[f] === b.dataset.val ? "" : b.dataset.val);
+          b.disabled = true;
+          try { await rpc("teacher_journal_set", { p_token: TT, p_day: day, p_student: s.id, p_field: f, p_value: v }); } catch (e) { toast(errText(e)); }
+          teacher();
+        }));
+      }
+    } catch (e) {
+      if (e.message === "TEACHER_AUTH" || e.message === "NOT_JOURNAL") { store.del(K_TEACHER); TT = null; return auth(ERR.TEACHER_AUTH); }
+      return fail(e);
+    }
+    $$("[data-v]").forEach(b => (b.onclick = () => { view = b.dataset.v; teacher(); }));
+    $("#refresh").onclick = teacher;
+    $("#logout").onclick = () => { store.del(K_TEACHER); TT = null; auth(); };
+  }
+  function paySheet(s) {
+    sheet(`<h3>💸 ${esc(s.name)}</h3>
+      <p class="muted" style="margin:0">Jami jarima: <b style="color:var(--ink)">${som(s.fine_all)}</b> · to'langan: <b style="color:var(--ink)">${som(s.paid)}</b><br>${s.debt > 0 ? `Qarz: <b class="debt">${som(s.debt)}</b>` : "Qarzi yo'q ✅"}</p>
+      <input class="input" id="sum" inputmode="numeric" placeholder="Summa (so'm)" value="${s.debt > 0 ? s.debt : ""}">
+      <button class="btn btn-brand btn-block" id="pay">✅ To'landi deb yozish</button>
+      <button class="btn btn-soft btn-block" id="undo">↩️ Xato yozilgan to'lovni ayirish</button>
+      <button class="btn btn-soft btn-block" id="pin">🔑 PIN'ni yangilash</button>
+      <button class="btn btn-soft btn-block" data-close>Yopish</button>`);
+    const go = async sign => {
+      const n = parseInt(($("#sum").value || "").replace(/\D/g, ""), 10);
+      if (!n) return toast("Summani yozing");
+      try { await rpc("teacher_payment", { p_token: TT, p_student: s.id, p_amount: sign * n }); toast(sign > 0 ? `💰 ${som(n)} kassaga qo'shildi` : `↩️ ${som(n)} ayirildi`); }
+      catch (e) { return toast(errText(e)); }
+      closeSheet(); teacher();
+    };
+    $("#pay").onclick = () => go(1); $("#undo").onclick = () => go(-1);
+    $("#pin").onclick = async () => {
+      try { const r = await rpc("teacher_reset_pin", { p_token: TT, p_student: s.id }); sheet(`<h3>🔑 ${esc(s.name)}</h3><p>Yangi PIN:</p><div class="card" style="text-align:center;font-family:Unbounded;font-size:36px;letter-spacing:.2em">${r.pin}</div><button class="btn btn-soft btn-block" data-close>Yopish</button>`); }
+      catch (e) { toast(errText(e)); }
+    };
+  }
+
+  // ---------- Kirish ----------
+  function auth(msg) {
+    let mode = "login";
+    const draw = () => {
+      $("#app").innerHTML = `<div class="top"><div class="logo">D</div><div class="t"><small>Davomat · ball · jarima</small><b>Dod Pro</b></div></div>
+        <div class="seg"><button data-m="login" aria-pressed="${mode === "login"}">Kirish</button><button data-m="join" aria-pressed="${mode === "join"}">Ro'yxatdan o'tish</button><button data-m="teacher" aria-pressed="${mode === "teacher"}">👨‍🏫 Ustoz</button></div>
+        <div class="card" style="display:grid;gap:10px">
+          ${mode === "teacher" ? `<input class="input" id="pass" type="password" placeholder="Ustoz paroli" autocomplete="current-password">`
+            : `<input class="input" id="name" placeholder="Ism va familiya" autocomplete="name"><input class="input" id="pin" inputmode="numeric" maxlength="4" placeholder="4 xonali PIN" autocomplete="off">`}
+          ${msg ? `<div class="err">${esc(msg)}</div>` : ""}
+          <button class="btn btn-brand btn-block" id="go">${mode === "join" ? "Ro'yxatdan o'tish" : "Kirish"}</button>
+          ${mode === "join" ? `<small class="muted">PIN'ni eslab qoling — keyingi safar shu bilan kirasiz.</small>` : ""}
+        </div>
+        <div class="card rules">${RULES}</div>`;
+      $$("[data-m]").forEach(b => (b.onclick = () => { mode = b.dataset.m; msg = ""; draw(); }));
+      $("#go").onclick = async () => {
+        $("#go").disabled = true;
+        try {
+          if (mode === "teacher") {
+            const r = await rpc("teacher_login", { p_code: CODE, p_password: $("#pass").value });
+            TT = r.token; store.set(K_TEACHER, TT); return teacher();
+          }
+          const r = await rpc(mode === "join" ? "join_group" : "login", { p_code: CODE, p_name: $("#name").value, p_pin: $("#pin").value });
+          TOKEN = r.token; store.set(K_TOKEN, TOKEN); return student();
+        } catch (e) { msg = errText(e); draw(); }
+      };
+    };
+    draw();
+  }
+  function fail(e) { $("#app").innerHTML = `<div class="card"><p>${esc(errText(e))}</p><button class="btn btn-brand btn-block" onclick="location.reload()">🔄 Qayta urinish</button></div>`; }
+
+  if (TT) teacher(); else if (TOKEN) student(); else auth();
+})();
+</script>
+</body>
+</html>

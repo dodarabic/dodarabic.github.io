@@ -1759,6 +1759,7 @@
   async function boot() {
     try {
       ME = await rpc("me", { p_token: TOKEN });
+      if (ME.group && ME.group.journal) return location.replace("pro/");   // Dod Pro o'quvchilari — alohida sahifada
       S = Object.assign(fresh(), ME.state || {});
       store.set(K_CACHE, JSON.stringify({ ME, S }));
     } catch (e) {
